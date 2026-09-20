@@ -1,14 +1,33 @@
 # Veil — privacy-first camera
 
+**Kotlin Multiplatform · Android + iOS.** One privacy engine, written once in
+common Kotlin, compiled to a JVM library for the Android app and to
+`VeilPrivacy.framework` for the iOS app.
+
 Take the photograph you wanted. Every visible face is anonymized on-device;
 buildings, scenery, signs and sky stay exactly as sharp as they were shot.
 
 ```
-CAMERA → ML KIT FACE DETECTION → ELLIPTICAL FACE REGION → BLUR / PIXELATE / MASK
-       → PRIVACY AUDIT (escalate if weak) → MEDIASTORE
+            ┌──────────────── core-privacy (Kotlin Multiplatform) ────────────────┐
+CAMERA  →   │ ELLIPTICAL FACE REGION → BLUR / PIXELATE / MASK → PRIVACY AUDIT     │  →  GALLERY
+(on-device  └─────────────────────────────────────────────────────────────────────┘
+ detection)   commonMain → jvm target (Android)  ·  iosArm64 / iosSimulatorArm64 / iosX64
 ```
 
+| | Android | iOS |
+| --- | --- | --- |
+| Shared engine | `core-privacy` jvm target | `core-privacy` iOS targets, as `VeilPrivacy.framework` |
+| UI | Jetpack Compose | SwiftUI |
+| Camera | CameraX | AVFoundation |
+| Face detection (on-device) | ML Kit | Vision `VNDetectFaceRectanglesRequest` |
+| Face ids for keep-visible | ML Kit tracking ids | shared `FaceTracker` |
+| Video | MediaCodec + MediaMuxer | `AVAssetWriter` |
+| Saving | MediaStore `Pictures/Veil`, `Movies/Veil` | Photos, "Veil" album |
+
 ## What it does
+
+The list below describes the Android app; the iOS app does the same through
+AVFoundation and Vision.
 
 - Opens straight to a CameraX preview with an optional live "face shield" overlay.
 - Captures at full sensor resolution, applies EXIF orientation, keeps the original
@@ -26,7 +45,9 @@ CAMERA → ML KIT FACE DETECTION → ELLIPTICAL FACE REGION → BLUR / PIXELATE 
   MP4 to `Movies/Veil`.
 - Tap a face — in the viewfinder or on a captured photo — to keep it visible,
   e.g. your own. The choice follows the face across video frames through ML
-  Kit's per-session tracking id; no identity is computed or stored.
+  Kit's per-session tracking id (on iOS, through the shared `FaceTracker`,
+  which matches faces by position between frames); no identity is computed or
+  stored.
 
 ## Modules
 
@@ -36,18 +57,22 @@ CAMERA → ML KIT FACE DETECTION → ELLIPTICAL FACE REGION → BLUR / PIXELATE 
 | `app` | Android: Compose UI, CameraX, ML Kit bridge, MediaStore/share, settings |
 | `iosApp` | iOS: SwiftUI, AVFoundation capture, Vision detection, Photos/share |
 
-The privacy engine is one codebase for both platforms. Only what the OS owns
-differs: camera, face detector, and the photo library.
+Everything that decides which pixels change, and how, lives in
+`core-privacy/src/commonMain` and is compiled for both platforms from that one
+source — geometry, blur, pixelation, mask, the post-processing audit and
+between-frame face tracking. Only what the OS owns is written twice: the
+camera, the face detector and the photo library.
 
-| | Android | iOS |
-| --- | --- | --- |
-| Camera | CameraX | AVFoundation |
-| Face detection (on-device) | ML Kit | Vision `VNDetectFaceRectanglesRequest` |
-| Face ids for keep-visible | ML Kit tracking ids | shared `FaceTracker` |
-| Video | MediaCodec + MediaMuxer | `AVAssetWriter` |
-| Saving | MediaStore `Movies/Veil`, `Pictures/Veil` | Photos, "Veil" album |
+```kotlin
+// core-privacy/build.gradle.kts
+kotlin {
+    jvm()                                              // Android app
+    listOf(iosArm64(), iosSimulatorArm64(), iosX64())  // iPhone + simulators
+        .forEach { it.binaries.framework { baseName = "VeilPrivacy" } }
+}
+```
 
-## Build, install, run
+## Android: build, install, run
 
 ```bash
 export ANDROID_HOME=$HOME/Android/Sdk
@@ -70,7 +95,7 @@ Instrumented tests, which run the real ML Kit + Bitmap + MediaStore path:
 ./gradlew :app:connectedDebugAndroidTest
 ```
 
-## iOS
+## iOS: build and run
 
 Needs a Mac with Xcode 15+ and [XcodeGen](https://github.com/yonaskolb/XcodeGen)
 (`brew install xcodegen`). The Xcode project is generated, not committed.
