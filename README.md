@@ -32,8 +32,20 @@ CAMERA → ML KIT FACE DETECTION → ELLIPTICAL FACE REGION → BLUR / PIXELATE 
 
 | Module | Contents |
 | --- | --- |
-| `core-privacy` | Pure-Kotlin, JVM-testable engine: geometry, blur, pixelation, mask, audit, pipeline |
-| `app` | Compose UI, CameraX, ML Kit bridge, MediaStore/share, settings |
+| `core-privacy` | Kotlin Multiplatform engine (JVM + iOS): geometry, blur, pixelation, mask, audit, pipeline, face tracking |
+| `app` | Android: Compose UI, CameraX, ML Kit bridge, MediaStore/share, settings |
+| `iosApp` | iOS: SwiftUI, AVFoundation capture, Vision detection, Photos/share |
+
+The privacy engine is one codebase for both platforms. Only what the OS owns
+differs: camera, face detector, and the photo library.
+
+| | Android | iOS |
+| --- | --- | --- |
+| Camera | CameraX | AVFoundation |
+| Face detection (on-device) | ML Kit | Vision `VNDetectFaceRectanglesRequest` |
+| Face ids for keep-visible | ML Kit tracking ids | shared `FaceTracker` |
+| Video | MediaCodec + MediaMuxer | `AVAssetWriter` |
+| Saving | MediaStore `Movies/Veil`, `Pictures/Veil` | Photos, "Veil" album |
 
 ## Build, install, run
 
@@ -58,6 +70,35 @@ Instrumented tests, which run the real ML Kit + Bitmap + MediaStore path:
 ./gradlew :app:connectedDebugAndroidTest
 ```
 
+## iOS
+
+Needs a Mac with Xcode 15+ and [XcodeGen](https://github.com/yonaskolb/XcodeGen)
+(`brew install xcodegen`). The Xcode project is generated, not committed.
+
+```bash
+cd iosApp
+xcodegen generate            # writes iosApp/Veil.xcodeproj
+open Veil.xcodeproj          # then run on a device or simulator
+```
+
+The build's first phase runs `:core-privacy:embedAndSignAppleFrameworkForXcode`,
+which compiles the shared Kotlin into the `VeilPrivacy.framework` the Swift
+code imports. To build the framework by hand:
+
+```bash
+./gradlew :core-privacy:linkDebugFrameworkIosSimulatorArm64   # simulator
+./gradlew :core-privacy:linkDebugFrameworkIosArm64            # iPhone
+```
+
+Run the shared engine's tests on every target:
+
+```bash
+./gradlew :core-privacy:allTests
+```
+
+The camera is real hardware, so the simulator shows the UI but detects no
+faces; capture behaviour has to be checked on an iPhone.
+
 ## Privacy properties
 
 - Camera is the only runtime permission the app declares. `INTERNET` and
@@ -70,7 +111,7 @@ Instrumented tests, which run the real ML Kit + Bitmap + MediaStore path:
 - Only the protected bitmap is written to the gallery or handed to the share
   sheet; the original never touches storage.
 
-## Known limitation
+## Known limitations
 
 A face that the frame cuts in half at an edge can be missed: ML Kit's recall
 drops sharply once most of a face is out of frame, and on such an input it
@@ -78,3 +119,8 @@ reports nothing at full resolution and only finds the face at one particular
 downscale. Adding scan passes (mirrored borders, extra scales) did not fix it
 reliably and cost seconds per capture, so it is not worked around here. Frame
 the subject fully, or use maximum strength, when the shot matters.
+
+The iOS app has not been compiled or run: it was written on Linux, where no
+Xcode exists. The shared Kotlin is verified (JVM and Kotlin/Native tests pass
+and the iOS frameworks are configured), but the Swift layer awaits its first
+build on a Mac.

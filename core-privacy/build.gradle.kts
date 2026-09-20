@@ -1,20 +1,25 @@
 plugins {
-    alias(libs.plugins.kotlin.jvm)
-}
-
-java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    alias(libs.plugins.kotlin.multiplatform)
 }
 
 kotlin {
     jvmToolchain(17)
-    sourceSets["main"].kotlin.srcDir("src/main/kotlin")
-    sourceSets["test"].kotlin.srcDir("src/test/kotlin")
-}
 
-dependencies {
-    testImplementation(libs.junit)
+    jvm()
+
+    listOf(iosArm64(), iosSimulatorArm64(), iosX64()).forEach { target ->
+        // Dynamic so Xcode can embed and sign it through
+        // :core-privacy:embedAndSignAppleFrameworkForXcode.
+        target.binaries.framework {
+            baseName = "VeilPrivacy"
+        }
+    }
+
+    sourceSets {
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+        }
+    }
 }
 
 tasks.withType<Test>().configureEach {

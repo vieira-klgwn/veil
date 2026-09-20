@@ -50,7 +50,7 @@ object FaceGeometry {
         if (points.size < 5) return null
         val cx = points.sumOf { it.x.toDouble() }.toFloat() / points.size
         val cy = points.sumOf { it.y.toDouble() }.toFloat() / points.size
-        val rad = Math.toRadians(rotationDegrees.toDouble())
+        val rad = radians(rotationDegrees)
         val c = cos(rad).toFloat()
         val s = sin(rad).toFloat()
         var maxX = 0f

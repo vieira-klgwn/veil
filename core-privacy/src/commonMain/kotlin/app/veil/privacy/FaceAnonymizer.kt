@@ -7,6 +7,7 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
+import kotlin.time.TimeSource
 
 /**
  * Applies a privacy effect to face regions only. Pixels outside the feathered
@@ -29,7 +30,7 @@ object FaceAnonymizer {
         strength: PrivacyStrength = PrivacyStrength.BALANCED,
         maskColor: Int = 0xFF141821.toInt(),
     ): AnonymizationResult {
-        val start = System.nanoTime()
+        val start = TimeSource.Monotonic.markNow()
         var modified = 0
         var protectedFaces = 0
         for (raw in faces) {
@@ -44,7 +45,7 @@ object FaceAnonymizer {
             facesProtected = protectedFaces,
             modifiedPixels = modified,
             totalPixels = image.width * image.height,
-            elapsedMillis = (System.nanoTime() - start) / 1_000_000,
+            elapsedMillis = start.elapsedNow().inWholeMilliseconds,
         )
     }
 
@@ -62,7 +63,8 @@ object FaceAnonymizer {
         val h = roi.height
         val src = IntArray(w * h)
         for (y in 0 until h) {
-            System.arraycopy(image.pixels, (roi.top + y) * image.width + roi.left, src, y * w, w)
+            val from = (roi.top + y) * image.width + roi.left
+            image.pixels.copyInto(src, y * w, from, from + w)
         }
 
         val minRadius = min(face.radiusX, face.radiusY)
@@ -78,7 +80,7 @@ object FaceAnonymizer {
             PrivacyEffect.MASK -> IntArray(w * h) { maskColor }
         }
 
-        val rad = Math.toRadians(face.rotationDegrees.toDouble())
+        val rad = radians(face.rotationDegrees)
         val cosR = cos(rad).toFloat()
         val sinR = sin(rad).toFloat()
         val inner = 1f - FEATHER
