@@ -43,82 +43,87 @@ fun SettingsSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .padding(horizontal = 24.dp)
-                .padding(bottom = 28.dp),
-        ) {
-            Text(
-                stringResource(R.string.settings_privacy),
-                style = MaterialTheme.typography.headlineSmall,
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                stringResource(R.string.settings_privacy_body),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
-            Spacer(Modifier.height(22.dp))
-            Text(stringResource(R.string.settings_effect), style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(10.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                PrivacyEffect.entries.forEach { option ->
-                    FilterChip(
-                        selected = option == settings.effect,
-                        onClick = { onEffect(option) },
-                        label = { Text(option.label()) },
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(22.dp))
-            Text(stringResource(R.string.settings_strength), style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(10.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                PrivacyStrength.entries.forEach { option ->
-                    FilterChip(
-                        selected = option == settings.strength,
-                        onClick = { onStrength(option) },
-                        label = { Text(stringResource(option.labelRes())) },
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(22.dp))
-            Text(stringResource(R.string.settings_language), style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(10.dp))
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                AppLanguage.entries.forEach { option ->
-                    FilterChip(
-                        selected = option == settings.language,
-                        onClick = { onLanguage(option) },
-                        label = { Text(stringResource(option.labelRes())) },
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(22.dp))
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+        // The sheet lives in its own window, which re-provides the activity
+        // context and configuration, so the in-app language has to be applied
+        // again inside it.
+        AppLocale(settings.language) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 28.dp),
             ) {
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        stringResource(R.string.settings_shields),
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                    Text(
-                        stringResource(R.string.settings_shields_body),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                Text(
+                    stringResource(R.string.settings_privacy),
+                    style = MaterialTheme.typography.headlineSmall,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    stringResource(R.string.settings_privacy_body),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
+                Spacer(Modifier.height(22.dp))
+                Text(stringResource(R.string.settings_effect), style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(10.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    PrivacyEffect.entries.forEach { option ->
+                        FilterChip(
+                            selected = option == settings.effect,
+                            onClick = { onEffect(option) },
+                            label = { Text(option.label()) },
+                        )
+                    }
                 }
-                Switch(checked = settings.livePreviewEnabled, onCheckedChange = onLivePreview)
+
+                Spacer(Modifier.height(22.dp))
+                Text(stringResource(R.string.settings_strength), style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(10.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    PrivacyStrength.entries.forEach { option ->
+                        FilterChip(
+                            selected = option == settings.strength,
+                            onClick = { onStrength(option) },
+                            label = { Text(stringResource(option.labelRes())) },
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(22.dp))
+                Text(stringResource(R.string.settings_language), style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(10.dp))
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    AppLanguage.entries.forEach { option ->
+                        FilterChip(
+                            selected = option == settings.language,
+                            onClick = { onLanguage(option) },
+                            label = { Text(stringResource(option.labelRes())) },
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(22.dp))
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            stringResource(R.string.settings_shields),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                        Text(
+                            stringResource(R.string.settings_shields_body),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Switch(checked = settings.livePreviewEnabled, onCheckedChange = onLivePreview)
+                }
             }
         }
     }
