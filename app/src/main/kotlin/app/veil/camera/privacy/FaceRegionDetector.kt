@@ -1,8 +1,6 @@
 package app.veil.camera.privacy
 
 import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Matrix
 import android.graphics.Rect
 import android.media.Image
 import app.veil.privacy.FaceGeometry
@@ -26,14 +24,12 @@ import kotlin.math.roundToInt
  * smallest ellipse that safely covers the face. ML Kit only answers "where is
  * a face"; no identity, embedding or tracking information is ever derived.
  *
- * A captured photograph is scanned in four stages:
+ * A captured photograph is scanned in three stages:
  *  1. the whole frame, downscaled - ML Kit recalls more faces at ~1600px than
  *     at 12MP and is an order of magnitude faster there;
  *  2. overlapping tiles of the full resolution frame, which is what makes
  *     small, distant faces detectable at all;
- *  3. the frame again with mirrored borders, because ML Kit misses faces the
- *     frame cut in half at an edge - the mirror makes them look whole;
- *  4. contour detection on each surviving face crop, giving a tight rotated
+ *  3. contour detection on each surviving face crop, giving a tight rotated
  *     outline. Contours cannot be requested for the whole frame: in that mode
  *     ML Kit returns only the most prominent face.
  */
@@ -47,7 +43,6 @@ class FaceRegionDetector private constructor(
         private const val CONTOUR_MAX_DIMENSION = 512
         private const val CONTOUR_CROP_MARGIN = 0.45f
         private const val TILE_OVERLAP = 0.2f
-        private const val EDGE_PADDING = 0.18f
 
         /** High quality detection used for the captured photograph. */
         fun forCapture(): FaceRegionDetector = FaceRegionDetector(
@@ -108,7 +103,6 @@ class FaceRegionDetector private constructor(
         for (window in windows(bitmap.width, bitmap.height)) {
             found += scan(bitmap, window)
         }
-        found += scanMirroredBorder(bitmap)
         return FaceRegions.deduplicate(found).map { region -> refine(bitmap, region) }
     }
 
@@ -188,52 +182,6 @@ class FaceRegionDetector private constructor(
             radiusY = max(fitted.radiusY, region.radiusY * 0.8f),
         )
     }
-
-    /**
-     * Detects faces that run off the edge of the frame. Such a face is only
-     * half present, which ML Kit rejects or shrinks to a fragment, so the
-     * frame is surrounded by a mirror image of itself first and the results
-     * are moved back into frame coordinates.
-     */
-    private suspend fun scanMirroredBorder(source: Bitmap): List<FaceRegion> {
-        val scale = downscale(source.width, source.height, DETECTION_MAX_DIMENSION)
-        val small = resized(source, scale)
-        val pad = (max(small.width, small.height) * EDGE_PADDING).roundToInt()
-        val padded = if (pad < 8) null else mirrorPadded(small, pad)
-        if (padded == null) {
-            if (small !== source) small.recycle()
-            return emptyList()
-        }
-        val width = small.width.toFloat()
-        val height = small.height.toFloat()
-        val faces = try {
-            process(detector, InputImage.fromBitmap(padded, 0))
-        } finally {
-            padded.recycle()
-            if (small !== source) small.recycle()
-        }
-        return faces
-            .map { toRegion(it).translatedBy(-pad.toFloat(), -pad.toFloat()) }
-            .filter { it.centerX in 0f..width && it.centerY in 0f..height }
-            .map { it.scaledBy(1f / scale) }
-    }
-
-    private fun mirrorPadded(source: Bitmap, pad: Int): Bitmap? = runCatching {
-        val out = Bitmap.createBitmap(source.width + pad * 2, source.height + pad * 2, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(out)
-        val flipX = Matrix().apply { setScale(-1f, 1f) }
-        val flipY = Matrix().apply { setScale(1f, -1f) }
-        val mirroredX = Bitmap.createBitmap(source, 0, 0, source.width, source.height, flipX, false)
-        val mirroredY = Bitmap.createBitmap(source, 0, 0, source.width, source.height, flipY, false)
-        canvas.drawBitmap(mirroredX, (pad - source.width).toFloat(), pad.toFloat(), null)
-        canvas.drawBitmap(mirroredX, (pad + source.width).toFloat(), pad.toFloat(), null)
-        canvas.drawBitmap(mirroredY, pad.toFloat(), (pad - source.height).toFloat(), null)
-        canvas.drawBitmap(mirroredY, pad.toFloat(), (pad + source.height).toFloat(), null)
-        canvas.drawBitmap(source, pad.toFloat(), pad.toFloat(), null)
-        mirroredX.recycle()
-        mirroredY.recycle()
-        out
-    }.getOrNull()
 
     private fun cropped(source: Bitmap, window: Rect): Bitmap? {
         if (window.left == 0 && window.top == 0 &&
