@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -99,6 +100,8 @@ fun CameraScreen(
     var lensFacing by remember { mutableStateOf(CameraSelector.LENS_FACING_BACK) }
     var cameraError by remember { mutableStateOf<String?>(null) }
     var videoMode by remember { mutableStateOf(false) }
+    var cameraProvider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
+    var boundAnalysis by remember { mutableStateOf<ImageAnalysis?>(null) }
 
     val executor: ExecutorService = remember { Executors.newSingleThreadExecutor() }
     val previewView = remember {
@@ -124,8 +127,14 @@ fun CameraScreen(
         )
     }
 
+    // The analysis use case outlives this composable because it is bound to the
+    // activity lifecycle, so it has to be unbound before the executor goes away:
+    // otherwise CameraX keeps producing frames nobody closes and exhausts its
+    // image queue while the review screen is open.
     DisposableEffect(Unit) {
         onDispose {
+            boundAnalysis?.clearAnalyzer()
+            cameraProvider?.unbindAll()
             analyzer.close()
             executor.shutdown()
         }
@@ -154,6 +163,8 @@ fun CameraScreen(
     LaunchedEffect(lensFacing) {
         try {
             val provider = context.awaitCameraProvider()
+            cameraProvider = provider
+            boundAnalysis?.clearAnalyzer()
             provider.unbindAll()
             val preview = Preview.Builder().build().also { it.setSurfaceProvider(previewView.surfaceProvider) }
             val analysis = ImageAnalysis.Builder()
@@ -171,6 +182,7 @@ fun CameraScreen(
                 )
                 .build()
                 .also { it.setAnalyzer(executor, analyzer) }
+            boundAnalysis = analysis
             val useCases = listOf(preview, imageCapture, analysis)
             provider.bindToLifecycle(
                 lifecycleOwner,
@@ -205,7 +217,11 @@ fun CameraScreen(
         }
 
         Column(
-            modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 12.dp),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .statusBarsPadding()
+                .displayCutoutPadding()
+                .padding(top = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             PrivacyChip(
@@ -224,6 +240,7 @@ fun CameraScreen(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .statusBarsPadding()
+                .displayCutoutPadding()
                 .padding(8.dp)
                 .background(ControlScrim, CircleShape),
         ) {

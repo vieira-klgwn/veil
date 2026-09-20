@@ -13,6 +13,7 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -99,9 +100,10 @@ private fun VeilApp(viewModel: CaptureViewModel) {
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHost) },
         containerColor = MaterialTheme.colorScheme.background,
-    ) { padding ->
         // The screens are full bleed and apply their own status/navigation bar
-        // padding, so the scaffold insets are consumed rather than applied.
+        // padding, so the scaffold neither applies nor consumes system insets.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+    ) { padding ->
         Box(Modifier.fillMaxSize().consumeWindowInsets(padding)) {
             if (!hasCamera) {
                 PermissionPrompt { permissionLauncher.launch(Manifest.permission.CAMERA) }
