@@ -14,10 +14,22 @@ import kotlinx.coroutines.flow.map
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "veil_settings")
 
+/**
+ * Languages the app ships translations for. [SYSTEM] follows the device
+ * setting; the others override it inside the app only.
+ */
+enum class AppLanguage(val tag: String?) {
+    SYSTEM(null),
+    ENGLISH("en"),
+    FRENCH("fr"),
+    ARABIC("ar"),
+}
+
 data class VeilSettings(
     val effect: PrivacyEffect = PrivacyEffect.BLUR,
     val strength: PrivacyStrength = PrivacyStrength.BALANCED,
     val livePreviewEnabled: Boolean = true,
+    val language: AppLanguage = AppLanguage.SYSTEM,
 )
 
 class SettingsStore(private val context: Context) {
@@ -25,6 +37,7 @@ class SettingsStore(private val context: Context) {
     private val effectKey = stringPreferencesKey("effect")
     private val strengthKey = stringPreferencesKey("strength")
     private val liveKey = booleanPreferencesKey("live_preview")
+    private val languageKey = stringPreferencesKey("language")
 
     val settings: Flow<VeilSettings> = context.dataStore.data.map { prefs ->
         VeilSettings(
@@ -33,6 +46,8 @@ class SettingsStore(private val context: Context) {
             strength = prefs[strengthKey]?.let { runCatching { PrivacyStrength.valueOf(it) }.getOrNull() }
                 ?: PrivacyStrength.BALANCED,
             livePreviewEnabled = prefs[liveKey] ?: true,
+            language = prefs[languageKey]?.let { runCatching { AppLanguage.valueOf(it) }.getOrNull() }
+                ?: AppLanguage.SYSTEM,
         )
     }
 
@@ -46,5 +61,9 @@ class SettingsStore(private val context: Context) {
 
     suspend fun setLivePreview(enabled: Boolean) {
         context.dataStore.edit { it[liveKey] = enabled }
+    }
+
+    suspend fun setLanguage(language: AppLanguage) {
+        context.dataStore.edit { it[languageKey] = language.name }
     }
 }

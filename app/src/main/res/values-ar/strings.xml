@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tagline">صور جميلة. أشخاص محميون.</string>
+
+    <string name="cd_shutter">التقاط صورة محمية</string>
+    <string name="cd_switch_camera">تبديل الكاميرا</string>
+    <string name="cd_settings">إعدادات الخصوصية</string>
+    <string name="cd_gallery">فتح الصور الأخيرة</string>
+    <string name="cd_close">إغلاق</string>
+    <string name="cd_preview">معاينة الصورة المحمية</string>
+    <string name="cd_viewfinder">عدسة الكاميرا</string>
+    <string name="cd_recording">جارٍ تسجيل فيديو محمي</string>
+    <string name="cd_stop_recording">إيقاف التسجيل</string>
+    <string name="cd_record_video">تسجيل فيديو محمي</string>
+    <string name="cd_mode">وضع %1$s</string>
+    <string name="cd_effect_option">تأثير %1$s</string>
+
+    <string name="permission_title">يحتاج Veil إلى الكاميرا</string>
+    <string name="permission_body">يتم تحليل الصور وحمايتها على هذا الجهاز. لا يتم رفع أي شيء.</string>
+    <string name="permission_allow">السماح بالكاميرا</string>
+
+    <string name="action_retake">إعادة الالتقاط</string>
+    <string name="action_share">مشاركة</string>
+    <string name="action_save">حفظ</string>
+    <string name="share_photo_chooser">مشاركة الصورة المحمية</string>
+    <string name="share_video_chooser">مشاركة الفيديو المحمي</string>
+
+    <string name="mode_photo">صورة</string>
+    <string name="mode_video">فيديو</string>
+
+    <string name="effect_blur">تمويه</string>
+    <string name="effect_pixelate">تبكسل</string>
+    <string name="effect_mask">قناع</string>
+    <string name="strength_balanced">متوازن</string>
+    <string name="strength_maximum">أقصى</string>
+
+    <string name="settings_privacy">الخصوصية</string>
+    <string name="settings_privacy_body">يتم العثور على الوجوه وحمايتها على هذا الجهاز. الصور لا تغادر هاتفك أبدًا.</string>
+    <string name="settings_effect">التأثير</string>
+    <string name="settings_strength">مستوى الحماية</string>
+    <string name="settings_shields">دروع الوجوه المباشرة</string>
+    <string name="settings_shields_body">إظهار الوجوه التي ستتم حمايتها داخل عدسة الكاميرا.</string>
+    <string name="settings_language">اللغة</string>
+    <string name="language_system">النظام</string>
+
+    <string name="review_effect">تأثير الخصوصية</string>
+    <string name="hint_tap_face">انقر على وجه لإبقائه ظاهرًا</string>
+    <plurals name="hint_kept_visible">
+        <item quantity="zero">لا وجوه ظاهرة · انقر مرة أخرى للحماية</item>
+        <item quantity="one">وجه واحد ظاهر · انقر مرة أخرى لحمايته</item>
+        <item quantity="two">وجهان ظاهران · انقر مرة أخرى لحمايتهما</item>
+        <item quantity="few">%d وجوه ظاهرة · انقر مرة أخرى لحمايتها</item>
+        <item quantity="many">%d وجهًا ظاهرًا · انقر مرة أخرى لحمايتها</item>
+        <item quantity="other">%d وجه ظاهر · انقر مرة أخرى لحمايتها</item>
+    </plurals>
+
+    <string name="chip_privacy_on">الخصوصية مفعّلة</string>
+    <plurals name="chip_faces_will_be_protected">
+        <item quantity="zero">لن تتم حماية أي وجه</item>
+        <item quantity="one">ستتم حماية وجه واحد</item>
+        <item quantity="two">ستتم حماية وجهين</item>
+        <item quantity="few">ستتم حماية %d وجوه</item>
+        <item quantity="many">ستتم حماية %d وجهًا</item>
+        <item quantity="other">ستتم حماية %d وجه</item>
+    </plurals>
+    <plurals name="chip_kept_visible">
+        <item quantity="zero">لا شيء ظاهر</item>
+        <item quantity="one">واحد ظاهر</item>
+        <item quantity="two">اثنان ظاهران</item>
+        <item quantity="few">%d ظاهرة</item>
+        <item quantity="many">%d ظاهرًا</item>
+        <item quantity="other">%d ظاهر</item>
+    </plurals>
+    <string name="rec_timer">تسجيل %1$02d:%2$02d</string>
+
+    <string name="banner_no_faces_found">لم يتم العثور على وجوه</string>
+    <string name="banner_no_faces_protected">لم تتم حماية أي وجه</string>
+    <plurals name="banner_faces_protected">
+        <item quantity="zero">لم تتم حماية أي وجه</item>
+        <item quantity="one">تمت حماية وجه واحد</item>
+        <item quantity="two">تمت حماية وجهين</item>
+        <item quantity="few">تمت حماية %d وجوه</item>
+        <item quantity="many">تمت حماية %d وجهًا</item>
+        <item quantity="other">تمت حماية %d وجه</item>
+    </plurals>
+    <string name="banner_dimensions">%1$d × %2$d · الخلفية دون تغيير</string>
+
+    <string name="camera_unavailable">الكاميرا غير متاحة: %1$s</string>
+    <string name="error_unknown">خطأ غير معروف</string>
+    <string name="msg_capture_failed">تعذّر التقاط الصورة. يرجى المحاولة مرة أخرى.</string>
+    <string name="msg_video_unavailable">تسجيل الفيديو غير متاح على هذا الجهاز.</string>
+    <string name="msg_recording_too_short">كان التسجيل قصيرًا جدًا للحفظ.</string>
+    <string name="msg_video_saved">تم الحفظ في Movies/Veil</string>
+    <string name="msg_video_save_failed">فشل حفظ الفيديو: %1$s</string>
+    <string name="msg_escalated_faces">احتاجت بعض الوجوه إلى تأثير أقوى فتم إخفاؤها بالكامل.</string>
+    <string name="msg_out_of_memory">هذه الصورة أكبر من الذاكرة المتاحة.</string>
+    <string name="msg_protection_failed">فشلت حماية الوجوه، ولم يتم حفظ الصورة.</string>
+    <string name="msg_photo_saved">تم الحفظ في Pictures/Veil</string>
+    <string name="msg_save_failed">فشل الحفظ: %1$s</string>
+    <string name="msg_share_unavailable">المشاركة غير متاحة حاليًا.</string>
+</resources>

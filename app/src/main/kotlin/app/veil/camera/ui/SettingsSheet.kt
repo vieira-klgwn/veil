@@ -2,6 +2,8 @@ package app.veil.camera.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,18 +21,22 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import app.veil.camera.R
+import app.veil.camera.data.AppLanguage
 import app.veil.camera.data.VeilSettings
 import app.veil.privacy.PrivacyEffect
 import app.veil.privacy.PrivacyStrength
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun SettingsSheet(
     settings: VeilSettings,
     onEffect: (PrivacyEffect) -> Unit,
     onStrength: (PrivacyStrength) -> Unit,
     onLivePreview: (Boolean) -> Unit,
+    onLanguage: (AppLanguage) -> Unit,
     onDismiss: () -> Unit,
 ) {
     ModalBottomSheet(
@@ -45,16 +51,19 @@ fun SettingsSheet(
                 .padding(horizontal = 24.dp)
                 .padding(bottom = 28.dp),
         ) {
-            Text("Privacy", style = MaterialTheme.typography.headlineSmall)
+            Text(
+                stringResource(R.string.settings_privacy),
+                style = MaterialTheme.typography.headlineSmall,
+            )
             Spacer(Modifier.height(4.dp))
             Text(
-                "Faces are found and protected on this device. Photos never leave your phone.",
+                stringResource(R.string.settings_privacy_body),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
             Spacer(Modifier.height(22.dp))
-            Text("Effect", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.settings_effect), style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 PrivacyEffect.entries.forEach { option ->
@@ -67,14 +76,27 @@ fun SettingsSheet(
             }
 
             Spacer(Modifier.height(22.dp))
-            Text("Protection level", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.settings_strength), style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 PrivacyStrength.entries.forEach { option ->
                     FilterChip(
                         selected = option == settings.strength,
                         onClick = { onStrength(option) },
-                        label = { Text(if (option == PrivacyStrength.BALANCED) "Balanced" else "Maximum") },
+                        label = { Text(stringResource(option.labelRes())) },
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(22.dp))
+            Text(stringResource(R.string.settings_language), style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(10.dp))
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                AppLanguage.entries.forEach { option ->
+                    FilterChip(
+                        selected = option == settings.language,
+                        onClick = { onLanguage(option) },
+                        label = { Text(stringResource(option.labelRes())) },
                     )
                 }
             }
@@ -86,9 +108,12 @@ fun SettingsSheet(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text("Live face shields", style = MaterialTheme.typography.titleMedium)
                     Text(
-                        "Show which faces will be protected in the viewfinder.",
+                        stringResource(R.string.settings_shields),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        stringResource(R.string.settings_shields_body),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -97,4 +122,17 @@ fun SettingsSheet(
             }
         }
     }
+}
+
+private fun PrivacyStrength.labelRes(): Int = when (this) {
+    PrivacyStrength.BALANCED -> R.string.strength_balanced
+    PrivacyStrength.MAXIMUM -> R.string.strength_maximum
+}
+
+/** Language names stay in their own language, so they read natively. */
+private fun AppLanguage.labelRes(): Int = when (this) {
+    AppLanguage.SYSTEM -> R.string.language_system
+    AppLanguage.ENGLISH -> R.string.language_english
+    AppLanguage.FRENCH -> R.string.language_french
+    AppLanguage.ARABIC -> R.string.language_arabic
 }

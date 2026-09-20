@@ -7,6 +7,7 @@ import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import app.veil.camera.data.AppLanguage
 import app.veil.camera.data.SettingsStore
 import app.veil.camera.data.VeilSettings
 import app.veil.camera.privacy.BitmapPrivacy
@@ -69,8 +70,8 @@ class CaptureViewModel(app: Application) : AndroidViewModel(app) {
     private val _liveFaces = MutableStateFlow<LivePreviewFaces>(LivePreviewFaces())
     val liveFaces: StateFlow<LivePreviewFaces> = _liveFaces.asStateFlow()
 
-    private val _message = MutableStateFlow<String?>(null)
-    val message: StateFlow<String?> = _message.asStateFlow()
+    private val _message = MutableStateFlow<UiMessage?>(null)
+    val message: StateFlow<UiMessage?> = _message.asStateFlow()
 
     private val _savedUri = MutableStateFlow<Uri?>(null)
     val savedUri: StateFlow<Uri?> = _savedUri.asStateFlow()
@@ -95,7 +96,7 @@ class CaptureViewModel(app: Application) : AndroidViewModel(app) {
     fun onCaptureFailed(error: Throwable) {
         Log.w(TAG, "capture failed", error)
         _uiState.value = CaptureUiState.Camera
-        _message.value = "Could not take the photo. Please try again."
+        _message.value = UiMessage(R.string.msg_capture_failed)
     }
 
     fun onPhotoCaptured(jpeg: ByteArray) {
@@ -132,7 +133,7 @@ class CaptureViewModel(app: Application) : AndroidViewModel(app) {
         if (recorder.start(width, height)) {
             _video.value = VideoState(recording = true, startedAtMillis = System.currentTimeMillis())
         } else {
-            _message.value = "Video recording is not available on this device."
+            _message.value = UiMessage(R.string.msg_video_unavailable)
         }
     }
 
@@ -142,15 +143,15 @@ class CaptureViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             val file = withContext(Dispatchers.Default) { recorder.finish() }
             if (file == null) {
-                _message.value = "The recording was too short to save."
+                _message.value = UiMessage(R.string.msg_recording_too_short)
             } else {
                 try {
                     _savedUri.value = PhotoStore.saveVideoToGallery(getApplication(), file)
-                    _message.value = "Saved to Movies/Veil"
+                    _message.value = UiMessage(R.string.msg_video_saved, offerVideoShare = true)
                 } catch (t: Throwable) {
                     Log.e(TAG, "video save failed", t)
                     file.delete()
-                    _message.value = "Saving the video failed: ${t.message ?: "unknown error"}"
+                    _message.value = UiMessage(R.string.msg_video_save_failed, listOf(reason(t)))
                 }
             }
             _video.value = VideoState()
@@ -182,6 +183,10 @@ class CaptureViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { settingsStore.setLivePreview(enabled) }
     }
 
+    fun setLanguage(language: AppLanguage) {
+        viewModelScope.launch { settingsStore.setLanguage(language) }
+    }
+
     private fun process(jpeg: ByteArray, effect: PrivacyEffect, strength: PrivacyStrength) {
         _uiState.value = CaptureUiState.Working
         viewModelScope.launch {
@@ -190,16 +195,16 @@ class CaptureViewModel(app: Application) : AndroidViewModel(app) {
                 lastFaces = photo.faces
                 _uiState.value = CaptureUiState.Review(photo)
                 if (!photo.allFacesVerified) {
-                    _message.value = "Some faces needed a stronger effect and were fully masked."
+                    _message.value = UiMessage(R.string.msg_escalated_faces)
                 }
             } catch (oom: OutOfMemoryError) {
                 Log.e(TAG, "out of memory while protecting photo", oom)
                 _uiState.value = CaptureUiState.Camera
-                _message.value = "This photo is too large for the available memory."
+                _message.value = UiMessage(R.string.msg_out_of_memory)
             } catch (t: Throwable) {
                 Log.e(TAG, "processing failed", t)
                 _uiState.value = CaptureUiState.Camera
-                _message.value = "Face protection failed, the photo was not saved."
+                _message.value = UiMessage(R.string.msg_protection_failed)
             }
         }
     }
@@ -245,11 +250,11 @@ class CaptureViewModel(app: Application) : AndroidViewModel(app) {
             try {
                 val uri = PhotoStore.saveToGallery(getApplication(), review.photo.bitmap)
                 _savedUri.value = uri
-                _message.value = "Saved to Pictures/Veil"
+                _message.value = UiMessage(R.string.msg_photo_saved)
                 retake()
             } catch (t: Throwable) {
                 Log.e(TAG, "save failed", t)
-                _message.value = "Saving failed: ${t.message ?: "unknown error"}"
+                _message.value = UiMessage(R.string.msg_save_failed, listOf(reason(t)))
             }
         }
     }
@@ -261,7 +266,7 @@ class CaptureViewModel(app: Application) : AndroidViewModel(app) {
                 onIntent(PhotoStore.shareIntent(getApplication(), review.photo.bitmap))
             } catch (t: Throwable) {
                 Log.e(TAG, "share failed", t)
-                _message.value = "Sharing is not available right now."
+                _message.value = UiMessage(R.string.msg_share_unavailable)
             }
         }
     }
@@ -274,6 +279,10 @@ class CaptureViewModel(app: Application) : AndroidViewModel(app) {
         keptInPhoto = emptySet()
         _uiState.value = CaptureUiState.Camera
     }
+
+    /** Exception text is developer facing; only the fallback is translated. */
+    private fun reason(t: Throwable): String =
+        t.message ?: getApplication<Application>().getString(R.string.error_unknown)
 
     fun consumeMessage() {
         _message.value = null

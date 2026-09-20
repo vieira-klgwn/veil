@@ -48,11 +48,14 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.veil.camera.ProtectedPhoto
+import app.veil.camera.R
 import app.veil.privacy.PrivacyEffect
 
 @Composable
@@ -69,7 +72,7 @@ fun ReviewScreen(
         Box(Modifier.fillMaxSize().padding(bottom = 210.dp)) {
             Image(
                 bitmap = photo.preview.asImageBitmap(),
-                contentDescription = "Protected photo preview",
+                contentDescription = stringResource(R.string.cd_preview),
                 contentScale = ContentScale.Fit,
                 modifier = Modifier.fillMaxSize(),
             )
@@ -103,9 +106,13 @@ fun ReviewScreen(
                 if (photo.faces.isNotEmpty()) {
                     Text(
                         text = if (photo.keptVisible.isEmpty()) {
-                            "Tap a face to keep it visible"
+                            stringResource(R.string.hint_tap_face)
                         } else {
-                            "${photo.keptVisible.size} face(s) kept visible · tap again to protect"
+                            pluralStringResource(
+                                R.plurals.hint_kept_visible,
+                                photo.keptVisible.size,
+                                photo.keptVisible.size,
+                            )
                         },
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -113,21 +120,23 @@ fun ReviewScreen(
                     Spacer(Modifier.height(12.dp))
                 }
                 Text(
-                    text = "Privacy effect",
+                    text = stringResource(R.string.review_effect),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(10.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     PrivacyEffect.entries.forEach { option ->
+                        val optionLabel = option.label()
+                        val optionDescription = stringResource(R.string.cd_effect_option, optionLabel)
                         FilterChip(
                             selected = option == effect,
                             onClick = { onEffectChange(option) },
-                            label = { Text(option.label()) },
+                            label = { Text(optionLabel) },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                             ),
-                            modifier = Modifier.semantics { contentDescription = "${option.label()} effect" },
+                            modifier = Modifier.semantics { contentDescription = optionDescription },
                         )
                     }
                 }
@@ -142,14 +151,14 @@ fun ReviewScreen(
                         modifier = Modifier.weight(1f).height(52.dp),
                         contentPadding = ActionPadding,
                     ) {
-                        ActionContent(Icons.Filled.Refresh, "Retake")
+                        ActionContent(Icons.Filled.Refresh, stringResource(R.string.action_retake))
                     }
                     OutlinedButton(
                         onClick = onShare,
                         modifier = Modifier.weight(1f).height(52.dp),
                         contentPadding = ActionPadding,
                     ) {
-                        ActionContent(Icons.Filled.Share, "Share")
+                        ActionContent(Icons.Filled.Share, stringResource(R.string.action_share))
                     }
                     Button(
                         onClick = onSave,
@@ -157,7 +166,7 @@ fun ReviewScreen(
                         contentPadding = ActionPadding,
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     ) {
-                        ActionContent(Icons.Filled.Check, "Save")
+                        ActionContent(Icons.Filled.Check, stringResource(R.string.action_save))
                     }
                 }
             }
@@ -242,11 +251,28 @@ private fun ActionContent(icon: ImageVector, label: String) {
 
 @Composable
 private fun ProtectionBanner(photo: ProtectedPhoto, modifier: Modifier = Modifier) {
-    val headline = when (photo.facesProtected) {
-        0 -> if (photo.faces.isEmpty()) "No faces found" else "No faces protected"
-        1 -> "1 face protected"
-        else -> "${photo.facesProtected} faces protected"
-    } + if (photo.keptVisible.isNotEmpty()) " · ${photo.keptVisible.size} kept visible" else ""
+    val protection = when {
+        photo.facesProtected > 0 -> pluralStringResource(
+            R.plurals.banner_faces_protected,
+            photo.facesProtected,
+            photo.facesProtected,
+        )
+        photo.faces.isEmpty() -> stringResource(R.string.banner_no_faces_found)
+        else -> stringResource(R.string.banner_no_faces_protected)
+    }
+    val headline = if (photo.keptVisible.isEmpty()) {
+        protection
+    } else {
+        stringResource(
+            R.string.status_join,
+            protection,
+            pluralStringResource(
+                R.plurals.chip_kept_visible,
+                photo.keptVisible.size,
+                photo.keptVisible.size,
+            ),
+        )
+    }
     Row(
         modifier = modifier
             .background(Color(0x99000000), CircleShape)
@@ -263,7 +289,7 @@ private fun ProtectionBanner(photo: ProtectedPhoto, modifier: Modifier = Modifie
         Column {
             Text(headline, color = Color.White, style = MaterialTheme.typography.titleMedium)
             Text(
-                text = "${photo.width} × ${photo.height} · background untouched",
+                text = stringResource(R.string.banner_dimensions, photo.width, photo.height),
                 color = Color(0xFFBCC5D4),
                 style = MaterialTheme.typography.labelLarge,
             )
