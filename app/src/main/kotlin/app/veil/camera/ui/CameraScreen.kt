@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Size
 import android.view.OrientationEventListener
 import android.view.Surface
+import android.view.View
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
@@ -45,6 +46,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -62,7 +64,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -110,6 +114,9 @@ fun CameraScreen(
         PreviewView(context).apply {
             scaleType = PreviewView.ScaleType.FILL_CENTER
             implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+            // The camera feed is an image, not text: an RTL language must not
+            // shift it, or it stops lining up with the face overlay.
+            layoutDirection = View.LAYOUT_DIRECTION_LTR
         }
     }
     val imageCapture = remember(lensFacing) {
@@ -201,24 +208,29 @@ fun CameraScreen(
     }
 
     Box(Modifier.fillMaxSize().background(Color.Black)) {
-        androidx.compose.ui.viewinterop.AndroidView(
-            factory = { previewView },
-            modifier = Modifier.fillMaxSize().semantics { contentDescription = viewfinderLabel },
-        )
-        if (livePreviewEnabled) {
-            FaceShieldOverlay(
-                live = live,
-                keepVisible = keepVisible,
-                accent = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .pointerInput(live) {
-                        detectTapGestures { tap ->
-                            live.faceAt(tap, size.width.toFloat(), size.height.toFloat())
-                                ?.let(onToggleFace)
-                        }
-                    },
+        // The viewfinder and its face overlay share one coordinate space that
+        // comes from the sensor, so they are laid out left to right in every
+        // language; only the controls around them mirror.
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+            androidx.compose.ui.viewinterop.AndroidView(
+                factory = { previewView },
+                modifier = Modifier.fillMaxSize().semantics { contentDescription = viewfinderLabel },
             )
+            if (livePreviewEnabled) {
+                FaceShieldOverlay(
+                    live = live,
+                    keepVisible = keepVisible,
+                    accent = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .pointerInput(live) {
+                            detectTapGestures { tap ->
+                                live.faceAt(tap, size.width.toFloat(), size.height.toFloat())
+                                    ?.let(onToggleFace)
+                            }
+                        },
+                )
+            }
         }
 
         Column(
