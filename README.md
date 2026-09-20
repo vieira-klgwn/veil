@@ -21,6 +21,12 @@ CAMERA → ML KIT FACE DETECTION → ELLIPTICAL FACE REGION → BLUR / PIXELATE 
 - Audits every face after processing and escalates to a solid mask if the
   result is still legible.
 - Saves JPEG q96 to `Pictures/Veil` through MediaStore, shares via FileProvider.
+- Records video the same way: every frame is detected and anonymized before it
+  reaches the encoder, so the raw camera stream is never written. Saves H.264
+  MP4 to `Movies/Veil`.
+- Tap a face — in the viewfinder or on a captured photo — to keep it visible,
+  e.g. your own. The choice follows the face across video frames through ML
+  Kit's per-session tracking id; no identity is computed or stored.
 
 ## Modules
 
@@ -63,3 +69,12 @@ Instrumented tests, which run the real ML Kit + Bitmap + MediaStore path:
 - Detection results are used to locate pixels and are never persisted.
 - Only the protected bitmap is written to the gallery or handed to the share
   sheet; the original never touches storage.
+
+## Known limitation
+
+A face that the frame cuts in half at an edge can be missed: ML Kit's recall
+drops sharply once most of a face is out of frame, and on such an input it
+reports nothing at full resolution and only finds the face at one particular
+downscale. Adding scan passes (mirrored borders, extra scales) did not fix it
+reliably and cost seconds per capture, so it is not worked around here. Frame
+the subject fully, or use maximum strength, when the shot matters.
