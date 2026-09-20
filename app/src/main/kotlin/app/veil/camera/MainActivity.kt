@@ -13,6 +13,7 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -22,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -64,6 +66,8 @@ private fun VeilApp(viewModel: CaptureViewModel) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val live by viewModel.liveFaces.collectAsStateWithLifecycle()
     val message by viewModel.message.collectAsStateWithLifecycle()
+    val video by viewModel.video.collectAsStateWithLifecycle()
+    val keepVisible by viewModel.keepVisible.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
     var showSettings by remember { mutableStateOf(false) }
     var hasCamera by remember {
@@ -81,17 +85,24 @@ private fun VeilApp(viewModel: CaptureViewModel) {
     }
 
     LaunchedEffect(message) {
-        message?.let {
-            snackbarHost.showSnackbar(it)
-            viewModel.consumeMessage()
+        val text = message ?: return@LaunchedEffect
+        val savedVideo = text.startsWith("Saved to Movies")
+        val result = snackbarHost.showSnackbar(text, actionLabel = if (savedVideo) "Share" else null)
+        if (savedVideo && result == SnackbarResult.ActionPerformed) {
+            viewModel.shareVideo { intent ->
+                context.startActivity(Intent.createChooser(intent, "Share protected video"))
+            }
         }
+        viewModel.consumeMessage()
     }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHost) },
         containerColor = MaterialTheme.colorScheme.background,
-    ) { _ ->
-        Box(Modifier.fillMaxSize()) {
+    ) { padding ->
+        // The screens are full bleed and apply their own status/navigation bar
+        // padding, so the scaffold insets are consumed rather than applied.
+        Box(Modifier.fillMaxSize().consumeWindowInsets(padding)) {
             if (!hasCamera) {
                 PermissionPrompt { permissionLauncher.launch(Manifest.permission.CAMERA) }
             } else {
@@ -103,6 +114,7 @@ private fun VeilApp(viewModel: CaptureViewModel) {
                         onSave = viewModel::save,
                         onShare = { viewModel.share { intent -> context.startActivity(Intent.createChooser(intent, "Share protected photo")) } },
                         onRetake = viewModel::retake,
+                        onToggleFace = viewModel::togglePhotoFace,
                     )
 
                     else -> CameraScreen(
@@ -110,7 +122,14 @@ private fun VeilApp(viewModel: CaptureViewModel) {
                         effect = settings.effect,
                         livePreviewEnabled = settings.livePreviewEnabled,
                         busy = uiState is CaptureUiState.Working,
+                        video = video,
+                        keepVisible = keepVisible,
+                        recorder = viewModel.recorder,
+                        frameProtection = viewModel::frameProtection,
                         onFaces = viewModel::onLiveFaces,
+                        onToggleFace = viewModel::toggleLiveFace,
+                        onStartRecording = viewModel::startRecording,
+                        onStopRecording = viewModel::stopRecording,
                         onPhoto = viewModel::onPhotoCaptured,
                         onCaptureError = viewModel::onCaptureFailed,
                         onOpenSettings = { showSettings = true },

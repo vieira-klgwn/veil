@@ -50,6 +50,18 @@ data class FaceRegion(
 
     fun scaled(factor: Float): FaceRegion =
         copy(radiusX = radiusX * factor, radiusY = radiusY * factor)
+
+    /** True when the point falls inside the ellipse grown by [margin]. */
+    fun contains(x: Float, y: Float, margin: Float = 1f): Boolean {
+        val rad = Math.toRadians(rotationDegrees.toDouble())
+        val c = kotlin.math.cos(rad).toFloat()
+        val s = kotlin.math.sin(rad).toFloat()
+        val px = x - centerX
+        val py = y - centerY
+        val lx = (px * c + py * s) / (radiusX * margin)
+        val ly = (py * c - px * s) / (radiusY * margin)
+        return lx * lx + ly * ly <= 1f
+    }
 }
 
 data class IntRect(val left: Int, val top: Int, val right: Int, val bottom: Int) {

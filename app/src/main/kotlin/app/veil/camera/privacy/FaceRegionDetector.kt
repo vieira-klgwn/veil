@@ -64,7 +64,13 @@ class FaceRegionDetector private constructor(
             ),
         )
 
-        /** Cheap detection used for the live preview overlay. */
+        /**
+         * Cheap detection used for the live preview and for video frames.
+         * Tracking is enabled so a face the user chose to keep visible stays
+         * the same face from frame to frame; ML Kit tracking ids are
+         * per-session frame bookkeeping, not identity - they are never stored
+         * and mean nothing once the camera closes.
+         */
         fun forPreview(): FaceRegionDetector = FaceRegionDetector(
             FaceDetection.getClient(
                 FaceDetectorOptions.Builder()
@@ -73,6 +79,7 @@ class FaceRegionDetector private constructor(
                     .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_NONE)
                     .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_NONE)
                     .setMinFaceSize(0.08f)
+                    .enableTracking()
                     .build(),
             ),
             contourDetector = null,
@@ -101,6 +108,11 @@ class FaceRegionDetector private constructor(
 
     suspend fun detect(image: Image, rotationDegrees: Int): List<FaceRegion> =
         process(detector, InputImage.fromMediaImage(image, rotationDegrees)).map { toRegion(it) }
+
+    /** Live detection that keeps ML Kit's frame to frame tracking id. */
+    suspend fun detectTracked(bitmap: Bitmap): List<TrackedFace> =
+        process(detector, InputImage.fromBitmap(bitmap, 0))
+            .map { face -> TrackedFace(toRegion(face), face.trackingId) }
 
     /** Whole frame first, then overlapping quadrants for small faces. */
     private fun windows(width: Int, height: Int): List<Rect> {

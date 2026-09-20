@@ -12,6 +12,7 @@ import app.veil.camera.data.VeilSettings
 import app.veil.camera.privacy.BitmapPrivacy
 import app.veil.camera.privacy.FaceRegionDetector
 import app.veil.camera.privacy.PhotoStore
+import app.veil.camera.video.VideoRecorder
 import app.veil.privacy.FaceRegion
 import app.veil.privacy.PrivacyEffect
 import app.veil.privacy.PrivacyStrength
@@ -29,6 +30,10 @@ data class ProtectedPhoto(
     val bitmap: Bitmap,
     /** Screen sized copy, so review never uploads a 12MP texture per frame. */
     val preview: Bitmap,
+    /** Every face found, protected or not, so the user can tap to keep one. */
+    val faces: List<FaceRegion>,
+    /** Indices into [faces] the user chose to leave visible. */
+    val keptVisible: Set<Int>,
     val facesProtected: Int,
     val escalatedFaces: Int,
     val allFacesVerified: Boolean,
@@ -43,6 +48,12 @@ sealed interface CaptureUiState {
     data object Working : CaptureUiState
     data class Review(val photo: ProtectedPhoto) : CaptureUiState
 }
+
+data class VideoState(
+    val recording: Boolean = false,
+    val startedAtMillis: Long = 0L,
+    val saving: Boolean = false,
+)
 
 class CaptureViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -64,7 +75,18 @@ class CaptureViewModel(app: Application) : AndroidViewModel(app) {
     private val _savedUri = MutableStateFlow<Uri?>(null)
     val savedUri: StateFlow<Uri?> = _savedUri.asStateFlow()
 
+    private val _video = MutableStateFlow(VideoState())
+    val video: StateFlow<VideoState> = _video.asStateFlow()
+
+    /** Faces the user tapped in the viewfinder to keep visible. */
+    private val _keepVisible = MutableStateFlow<Set<Int>>(emptySet())
+    val keepVisible: StateFlow<Set<Int>> = _keepVisible.asStateFlow()
+
+    val recorder = VideoRecorder(app.cacheDir)
+
     private var lastCapture: ByteArray? = null
+    private var lastFaces: List<FaceRegion> = emptyList()
+    private var keptInPhoto: Set<Int> = emptySet()
 
     fun onLiveFaces(faces: LivePreviewFaces) {
         _liveFaces.value = faces
@@ -78,7 +100,66 @@ class CaptureViewModel(app: Application) : AndroidViewModel(app) {
 
     fun onPhotoCaptured(jpeg: ByteArray) {
         lastCapture = jpeg
+        lastFaces = emptyList()
+        keptInPhoto = emptySet()
         process(jpeg, settings.value.effect, settings.value.strength)
+    }
+
+    /** Protection settings the live/video frame pipeline should apply. */
+    fun frameProtection(): FrameProtection = FrameProtection(
+        effect = settings.value.effect,
+        strength = settings.value.strength,
+        keepVisible = _keepVisible.value,
+    )
+
+    /** Tap a face in the viewfinder to keep it visible, tap again to protect it. */
+    fun toggleLiveFace(trackingId: Int) {
+        _keepVisible.value = _keepVisible.value.toMutableSet().apply {
+            if (!add(trackingId)) remove(trackingId)
+        }
+    }
+
+    /** Tap a face on the review screen to keep it visible in the photo. */
+    fun togglePhotoFace(index: Int) {
+        val jpeg = lastCapture ?: return
+        if (_uiState.value !is CaptureUiState.Review) return
+        keptInPhoto = keptInPhoto.toMutableSet().apply { if (!add(index)) remove(index) }
+        process(jpeg, settings.value.effect, settings.value.strength)
+    }
+
+    fun startRecording(width: Int, height: Int) {
+        if (_video.value.recording) return
+        if (recorder.start(width, height)) {
+            _video.value = VideoState(recording = true, startedAtMillis = System.currentTimeMillis())
+        } else {
+            _message.value = "Video recording is not available on this device."
+        }
+    }
+
+    fun stopRecording() {
+        if (!_video.value.recording) return
+        _video.value = _video.value.copy(recording = false, saving = true)
+        viewModelScope.launch {
+            val file = withContext(Dispatchers.Default) { recorder.finish() }
+            if (file == null) {
+                _message.value = "The recording was too short to save."
+            } else {
+                try {
+                    _savedUri.value = PhotoStore.saveVideoToGallery(getApplication(), file)
+                    _message.value = "Saved to Movies/Veil"
+                } catch (t: Throwable) {
+                    Log.e(TAG, "video save failed", t)
+                    file.delete()
+                    _message.value = "Saving the video failed: ${t.message ?: "unknown error"}"
+                }
+            }
+            _video.value = VideoState()
+        }
+    }
+
+    fun shareVideo(onIntent: (Intent) -> Unit) {
+        val uri = _savedUri.value ?: return
+        onIntent(PhotoStore.shareVideoIntent(uri))
     }
 
     fun changeEffect(effect: PrivacyEffect) {
@@ -106,6 +187,7 @@ class CaptureViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             try {
                 val photo = withContext(Dispatchers.Default) { protect(jpeg, effect, strength) }
+                lastFaces = photo.faces
                 _uiState.value = CaptureUiState.Review(photo)
                 if (!photo.allFacesVerified) {
                     _message.value = "Some faces needed a stronger effect and were fully masked."
@@ -129,17 +211,24 @@ class CaptureViewModel(app: Application) : AndroidViewModel(app) {
     ): ProtectedPhoto {
         val bitmap = BitmapPrivacy.decodeUpright(jpeg)
         val detectStart = System.nanoTime()
-        val faces: List<FaceRegion> = try {
-            captureDetector.detect(bitmap)
-        } catch (t: Throwable) {
-            Log.w(TAG, "face detection failed, saving photo unmodified is not allowed", t)
-            throw t
+        // Detection is the slow half, so a re-run for a different effect or a
+        // face the user wants kept visible reuses the faces already found.
+        val faces: List<FaceRegion> = lastFaces.ifEmpty {
+            try {
+                captureDetector.detect(bitmap)
+            } catch (t: Throwable) {
+                Log.w(TAG, "face detection failed, saving photo unmodified is not allowed", t)
+                throw t
+            }
         }
         val detectMs = (System.nanoTime() - detectStart) / 1_000_000
-        val outcome = BitmapPrivacy.protect(bitmap, faces, effect, strength)
+        val protectedFaces = faces.filterIndexed { index, _ -> index !in keptInPhoto }
+        val outcome = BitmapPrivacy.protect(bitmap, protectedFaces, effect, strength)
         return ProtectedPhoto(
             bitmap = bitmap,
             preview = BitmapPrivacy.previewCopy(bitmap),
+            faces = faces,
+            keptVisible = keptInPhoto,
             facesProtected = outcome.facesProtected,
             escalatedFaces = outcome.escalatedFaces,
             allFacesVerified = outcome.allFacesVerified,
@@ -181,6 +270,8 @@ class CaptureViewModel(app: Application) : AndroidViewModel(app) {
         // The bitmap may still be on screen during the transition, so it is left
         // to the garbage collector instead of being recycled here.
         lastCapture = null
+        lastFaces = emptyList()
+        keptInPhoto = emptySet()
         _uiState.value = CaptureUiState.Camera
     }
 
@@ -189,6 +280,7 @@ class CaptureViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     override fun onCleared() {
+        recorder.cancel()
         captureDetector.close()
         super.onCleared()
     }
