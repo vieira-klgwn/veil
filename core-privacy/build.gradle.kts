@@ -7,6 +7,11 @@ kotlin {
 
     jvm()
 
+    js(IR) {
+        browser()
+        binaries.library()
+    }
+
     listOf(iosArm64(), iosSimulatorArm64(), iosX64()).forEach { target ->
         // Dynamic so Xcode can embed and sign it through
         // :core-privacy:embedAndSignAppleFrameworkForXcode.
