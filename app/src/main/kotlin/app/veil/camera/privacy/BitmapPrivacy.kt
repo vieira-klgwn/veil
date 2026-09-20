@@ -15,6 +15,8 @@ import java.io.ByteArrayInputStream
 /** Bridges Android bitmaps to the platform independent privacy core. */
 object BitmapPrivacy {
 
+    private const val PREVIEW_MAX_DIMENSION = 1440
+
     /**
      * Decodes a captured JPEG at full resolution and applies EXIF rotation so
      * that the saved photograph is upright everywhere, including gallery apps
@@ -49,6 +51,22 @@ object BitmapPrivacy {
         val rotated = Bitmap.createBitmap(source, 0, 0, source.width, source.height, matrix, true)
         if (rotated != source) source.recycle()
         return rotated
+    }
+
+    /**
+     * Screen sized copy of a protected photograph. Review renders this instead
+     * of the full resolution result, which keeps frames cheap on large images.
+     */
+    fun previewCopy(bitmap: Bitmap): Bitmap {
+        val longest = maxOf(bitmap.width, bitmap.height)
+        if (longest <= PREVIEW_MAX_DIMENSION) return bitmap
+        val scale = PREVIEW_MAX_DIMENSION.toFloat() / longest
+        return Bitmap.createScaledBitmap(
+            bitmap,
+            maxOf(1, (bitmap.width * scale).toInt()),
+            maxOf(1, (bitmap.height * scale).toInt()),
+            true,
+        )
     }
 
     /**

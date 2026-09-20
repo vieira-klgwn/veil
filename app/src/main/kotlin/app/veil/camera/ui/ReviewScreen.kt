@@ -57,7 +57,7 @@ fun ReviewScreen(
 ) {
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Image(
-            bitmap = photo.bitmap.asImageBitmap(),
+            bitmap = photo.preview.asImageBitmap(),
             contentDescription = "Protected photo preview",
             contentScale = ContentScale.Fit,
             modifier = Modifier.fillMaxSize().padding(bottom = 210.dp),

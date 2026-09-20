@@ -25,7 +25,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 data class ProtectedPhoto(
+    /** Full resolution result, used for saving and sharing. */
     val bitmap: Bitmap,
+    /** Screen sized copy, so review never uploads a 12MP texture per frame. */
+    val preview: Bitmap,
     val facesProtected: Int,
     val escalatedFaces: Int,
     val allFacesVerified: Boolean,
@@ -136,6 +139,7 @@ class CaptureViewModel(app: Application) : AndroidViewModel(app) {
         val outcome = BitmapPrivacy.protect(bitmap, faces, effect, strength)
         return ProtectedPhoto(
             bitmap = bitmap,
+            preview = BitmapPrivacy.previewCopy(bitmap),
             facesProtected = outcome.facesProtected,
             escalatedFaces = outcome.escalatedFaces,
             allFacesVerified = outcome.allFacesVerified,
