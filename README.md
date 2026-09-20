@@ -1,8 +1,8 @@
 # Veil — privacy-first camera
 
-**Kotlin Multiplatform · Android + iOS.** One privacy engine, written once in
-common Kotlin, compiled to a JVM library for the Android app and to
-`VeilPrivacy.framework` for the iOS app.
+**Kotlin Multiplatform · Android + iOS + web.** One privacy engine, written
+once in common Kotlin, compiled to a JVM library for the Android app, to
+`VeilPrivacy.framework` for the iOS app and to JavaScript for the browser app.
 
 Take the photograph you wanted. Every visible face is anonymized on-device;
 buildings, scenery, signs and sky stay exactly as sharp as they were shot.
@@ -11,23 +11,23 @@ buildings, scenery, signs and sky stay exactly as sharp as they were shot.
             ┌──────────────── core-privacy (Kotlin Multiplatform) ────────────────┐
 CAMERA  →   │ ELLIPTICAL FACE REGION → BLUR / PIXELATE / MASK → PRIVACY AUDIT     │  →  GALLERY
 (on-device  └─────────────────────────────────────────────────────────────────────┘
- detection)   commonMain → jvm target (Android)  ·  iosArm64 / iosSimulatorArm64 / iosX64
+ detection)   commonMain → jvm (Android)  ·  iosArm64 / iosSimulatorArm64 / iosX64  ·  js (browser)
 ```
 
-| | Android | iOS |
-| --- | --- | --- |
-| Shared engine | `core-privacy` jvm target | `core-privacy` iOS targets, as `VeilPrivacy.framework` |
-| UI | Jetpack Compose | SwiftUI |
-| Camera | CameraX | AVFoundation |
-| Face detection (on-device) | ML Kit | Vision `VNDetectFaceRectanglesRequest` |
-| Face ids for keep-visible | ML Kit tracking ids | shared `FaceTracker` |
-| Video | MediaCodec + MediaMuxer | `AVAssetWriter` |
-| Saving | MediaStore `Pictures/Veil`, `Movies/Veil` | Photos, "Veil" album |
+| | Android | iOS | Web |
+| --- | --- | --- | --- |
+| Shared engine | `core-privacy` jvm target | `core-privacy` iOS targets, as `VeilPrivacy.framework` | `core-privacy` js target |
+| UI | Jetpack Compose | SwiftUI | HTML + canvas |
+| Camera | CameraX | AVFoundation | `getUserMedia` |
+| Face detection (on-device) | ML Kit | Vision `VNDetectFaceRectanglesRequest` | MediaPipe Tasks Vision (WebAssembly, served by the app) |
+| Face ids for keep-visible | ML Kit tracking ids | shared `FaceTracker` | shared `FaceTracker` |
+| Video | MediaCodec + MediaMuxer | `AVAssetWriter` | `MediaRecorder` on the protected canvas |
+| Saving | MediaStore `Pictures/Veil`, `Movies/Veil` | Photos, "Veil" album | browser download + Web Share |
 
 ## What it does
 
-The list below describes the Android app; the iOS app does the same through
-AVFoundation and Vision.
+The list below describes the Android app; the iOS and web apps do the same
+through Vision and MediaPipe respectively.
 
 - Opens straight to a CameraX preview with an optional live "face shield" overlay.
 - Captures at full sensor resolution, applies EXIF orientation, keeps the original
@@ -53,20 +53,22 @@ AVFoundation and Vision.
 
 | Module | Contents |
 | --- | --- |
-| `core-privacy` | Kotlin Multiplatform engine (JVM + iOS): geometry, blur, pixelation, mask, audit, pipeline, face tracking |
+| `core-privacy` | Kotlin Multiplatform engine (JVM + iOS + JS): geometry, blur, pixelation, mask, audit, pipeline, face tracking |
 | `app` | Android: Compose UI, CameraX, ML Kit bridge, MediaStore/share, settings |
 | `iosApp` | iOS: SwiftUI, AVFoundation capture, Vision detection, Photos/share |
+| `webApp` | Web: Kotlin/JS, `getUserMedia`, MediaPipe WASM detection, canvas pipeline, download/share |
 
 Everything that decides which pixels change, and how, lives in
-`core-privacy/src/commonMain` and is compiled for both platforms from that one
+`core-privacy/src/commonMain` and is compiled for every platform from that one
 source — geometry, blur, pixelation, mask, the post-processing audit and
-between-frame face tracking. Only what the OS owns is written twice: the
-camera, the face detector and the photo library.
+between-frame face tracking. Only what the platform owns is written per
+platform: the camera, the face detector and the place pictures are saved.
 
 ```kotlin
 // core-privacy/build.gradle.kts
 kotlin {
     jvm()                                              // Android app
+    js(IR) { browser() }                               // web app
     listOf(iosArm64(), iosSimulatorArm64(), iosX64())  // iPhone + simulators
         .forEach { it.binaries.framework { baseName = "VeilPrivacy" } }
 }
@@ -124,6 +126,26 @@ Run the shared engine's tests on every target:
 The camera is real hardware, so the simulator shows the UI but detects no
 faces; capture behaviour has to be checked on an iPhone.
 
+## Web: build and run
+
+```bash
+./gradlew :webApp:jsBrowserDevelopmentRun   # dev server on http://localhost:8080
+./gradlew :webApp:jsBrowserDistribution     # static site in webApp/build/dist/js/productionExecutable
+```
+
+The distribution is a plain static directory — serve it with any web server.
+Browsers only grant a camera on `https://` or `http://localhost`.
+
+The MediaPipe WebAssembly runtime and the BlazeFace model are served from the
+app itself, not a CDN, so detection runs in the browser with no network call
+after the page loads. The camera `<video>` element is never shown: the only
+visible surface, the only source of a photo and the only source of a recording
+is the canvas holding protected pixels.
+
+MediaPipe reads every input frame through a WebGL 2 canvas, so a browser
+without WebGL 2 cannot detect faces at all. The app refuses to open the camera
+there rather than showing an unprotected preview.
+
 ## Privacy properties
 
 - Camera is the only runtime permission the app declares. `INTERNET` and
@@ -144,6 +166,11 @@ reports nothing at full resolution and only finds the face at one particular
 downscale. Adding scan passes (mirrored borders, extra scales) did not fix it
 reliably and cost seconds per capture, so it is not worked around here. Frame
 the subject fully, or use maximum strength, when the shot matters.
+
+The web app was exercised in Chrome against a fake camera device on Linux:
+detection, blur/pixelate/mask, keep-visible, photo review and save, and
+protected WebM recording all verified. Web Share and mobile browsers are
+untested — Chrome for Testing on this Linux box exposes neither.
 
 The iOS app has not been compiled or run: it was written on Linux, where no
 Xcode exists. The shared Kotlin is verified (JVM and Kotlin/Native tests pass

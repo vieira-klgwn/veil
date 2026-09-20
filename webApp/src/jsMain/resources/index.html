@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Veil — privacy-first camera</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>Veil</h1>
+    <p class="sub">Faces are protected in your browser. Nothing is uploaded.</p>
+  </header>
+
+  <main>
+    <div class="viewport">
+      <video id="camera" playsinline muted autoplay></video>
+      <canvas id="stage"></canvas>
+      <span id="timer" class="timer"></span>
+    </div>
+
+    <p id="status" class="status">Starting…</p>
+
+    <div id="live-bar" class="bar">
+      <button id="shutter" class="primary" type="button">Photo</button>
+      <button id="record" type="button">Record</button>
+    </div>
+
+    <div id="review-bar" class="bar" hidden>
+      <button id="save" class="primary" type="button">Save</button>
+      <button id="share" type="button">Share</button>
+      <button id="retake" type="button">Retake</button>
+    </div>
+
+    <div class="bar">
+      <label>Effect
+        <select id="effect">
+          <option value="BLUR">Blur</option>
+          <option value="PIXELATE">Pixelate</option>
+          <option value="MASK">Mask</option>
+        </select>
+      </label>
+      <label>Strength
+        <select id="strength">
+          <option value="BALANCED">Balanced</option>
+          <option value="MAXIMUM">Maximum</option>
+        </select>
+      </label>
+    </div>
+  </main>
+
+  <footer>
+    <p>
+      Detection runs on-device with MediaPipe WebAssembly served from this page.
+      The same Kotlin engine protects pixels here, on Android and on iOS. Faces
+      are located, never recognised.
+    </p>
+  </footer>
+
+  <script src="veil.js"></script>
+</body>
+</html>

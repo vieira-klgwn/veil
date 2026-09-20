@@ -11,7 +11,6 @@ captures/
 *.jks
 keystore.properties
 bin/
-kotlin-js-store/
 
 # iOS: the Xcode project is generated from iosApp/project.yml by XcodeGen.
 iosApp/Veil.xcodeproj/
