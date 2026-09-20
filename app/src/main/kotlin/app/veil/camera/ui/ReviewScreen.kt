@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -36,9 +37,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.veil.camera.ProtectedPhoto
 import app.veil.privacy.PrivacyEffect
@@ -108,32 +111,45 @@ fun ReviewScreen(
                     OutlinedButton(
                         onClick = onRetake,
                         modifier = Modifier.weight(1f).height(52.dp),
+                        contentPadding = ActionPadding,
                     ) {
-                        Icon(Icons.Filled.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.size(8.dp))
-                        Text("Retake")
+                        ActionContent(Icons.Filled.Refresh, "Retake")
                     }
                     OutlinedButton(
                         onClick = onShare,
                         modifier = Modifier.weight(1f).height(52.dp),
+                        contentPadding = ActionPadding,
                     ) {
-                        Icon(Icons.Filled.Share, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.size(8.dp))
-                        Text("Share")
+                        ActionContent(Icons.Filled.Share, "Share")
                     }
                     Button(
                         onClick = onSave,
-                        modifier = Modifier.weight(1.2f).height(52.dp),
+                        modifier = Modifier.weight(1f).height(52.dp),
+                        contentPadding = ActionPadding,
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     ) {
-                        Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.size(8.dp))
-                        Text("Save")
+                        ActionContent(Icons.Filled.Check, "Save")
                     }
                 }
             }
         }
     }
+}
+
+private val ActionPadding = PaddingValues(horizontal = 6.dp, vertical = 8.dp)
+
+/** Icon plus a label that always stays on one line, even on narrow screens. */
+@Composable
+private fun ActionContent(icon: ImageVector, label: String) {
+    Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
+    Spacer(Modifier.size(6.dp))
+    Text(
+        text = label,
+        maxLines = 1,
+        softWrap = false,
+        overflow = TextOverflow.Visible,
+        style = MaterialTheme.typography.labelLarge,
+    )
 }
 
 @Composable

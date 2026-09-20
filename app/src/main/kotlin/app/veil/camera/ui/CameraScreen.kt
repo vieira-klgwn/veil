@@ -173,7 +173,11 @@ fun CameraScreen(
 
         IconButton(
             onClick = onOpenSettings,
-            modifier = Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(8.dp),
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .statusBarsPadding()
+                .padding(8.dp)
+                .background(ControlScrim, CircleShape),
         ) {
             Icon(
                 Icons.Filled.Tune,
@@ -203,7 +207,10 @@ fun CameraScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            IconButton(onClick = onOpenGallery, modifier = Modifier.size(52.dp)) {
+            IconButton(
+                onClick = onOpenGallery,
+                modifier = Modifier.size(52.dp).background(ControlScrim, CircleShape),
+            ) {
                 Icon(
                     Icons.Filled.PhotoLibrary,
                     contentDescription = stringResource(R.string.cd_gallery),
@@ -239,7 +246,7 @@ fun CameraScreen(
                         CameraSelector.LENS_FACING_BACK
                     }
                 },
-                modifier = Modifier.size(52.dp),
+                modifier = Modifier.size(52.dp).background(ControlScrim, CircleShape),
             ) {
                 Icon(
                     Icons.Filled.Cameraswitch,
@@ -327,3 +334,6 @@ private suspend fun Context.awaitCameraProvider(): ProcessCameraProvider {
         )
     }
 }
+
+/** Keeps white controls legible over bright previews. */
+private val ControlScrim = Color(0x66000000)
