@@ -1,8 +1,8 @@
 package app.veil.privacy
 
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class AnonymizationTest {
 
@@ -41,7 +41,7 @@ class AnonymizationTest {
                 if (original.pixels[i] != image.pixels[i]) leaked++
             }
         }
-        assertEquals("no pixel outside a face may change", 0, leaked)
+        assertEquals(0, leaked, "no pixel outside a face may change")
     }
 
     @Test
@@ -53,10 +53,10 @@ class AnonymizationTest {
 
         val report = PrivacyAudit.audit(original, image, protectedRegions(regions))
         val audit = report.faces.single()
-        assertTrue("face must change substantially, was ${audit.meanDifference}", audit.meanDifference > 12f)
-        assertTrue("facial detail must be destroyed, retained ${audit.detailRetained}", audit.detailRetained < 0.2f)
-        assertTrue("pipeline audit said unverified: ${outcome.audits}", outcome.allFacesVerified)
-        assertTrue("background changed ${report.backgroundChangedFraction}", report.backgroundPreserved)
+        assertTrue(audit.meanDifference > 12f, "face must change substantially, was ${audit.meanDifference}")
+        assertTrue(audit.detailRetained < 0.2f, "facial detail must be destroyed, retained ${audit.detailRetained}")
+        assertTrue(outcome.allFacesVerified, "pipeline audit said unverified: ${outcome.audits}")
+        assertTrue(report.backgroundPreserved, "background changed ${report.backgroundChangedFraction}")
     }
 
     @Test
@@ -65,8 +65,8 @@ class AnonymizationTest {
         val (image, regions) = TestImages.scene(faces = faces)
         val outcome = PrivacyPipeline.protect(image, regions, PrivacyEffect.BLUR)
         assertTrue(
-            "tiny face must not blur the scene, modified ${outcome.modifiedFraction}",
             outcome.modifiedFraction < 0.002f,
+            "tiny face must not blur the scene, modified ${outcome.modifiedFraction}",
         )
         assertEquals(1, outcome.facesProtected)
     }
@@ -86,7 +86,7 @@ class AnonymizationTest {
             1e-9,
         )
         val report = PrivacyAudit.audit(original, image, regions)
-        assertTrue("whole-image change must stay local: ${report.imageChangedFraction}", report.imageChangedFraction < 0.05f)
+        assertTrue(report.imageChangedFraction < 0.05f, "whole-image change must stay local: ${report.imageChangedFraction}")
     }
 
     @Test
@@ -100,7 +100,7 @@ class AnonymizationTest {
         assertEquals(12, outcome.facesProtected)
         val report = PrivacyAudit.audit(original, image, regions)
         report.faces.forEachIndexed { i, a ->
-            assertTrue("face $i left unprotected (detail ${a.detailRetained})", a.isProtected)
+            assertTrue(a.isProtected, "face $i left unprotected (detail ${a.detailRetained})")
         }
     }
 
@@ -122,8 +122,8 @@ class AnonymizationTest {
         PrivacyPipeline.protect(image, regions, PrivacyEffect.PIXELATE)
         val report = PrivacyAudit.audit(original, image, protectedRegions(regions))
         val audit = report.faces.single()
-        assertTrue("pixelation must remove detail, retained ${audit.detailRetained}", audit.detailRetained < 0.25f)
-        assertTrue("background changed ${report.backgroundChangedFraction}", report.backgroundPreserved)
+        assertTrue(audit.detailRetained < 0.25f, "pixelation must remove detail, retained ${audit.detailRetained}")
+        assertTrue(report.backgroundPreserved, "background changed ${report.backgroundChangedFraction}")
     }
 
     @Test
@@ -158,7 +158,7 @@ class AnonymizationTest {
         val outcome = PrivacyPipeline.protect(image, faces, PrivacyEffect.BLUR)
         assertEquals(5, outcome.facesProtected)
         println("12MP / 5 faces anonymization: ${outcome.elapsedMillis} ms, modified ${outcome.modifiedFraction}")
-        assertTrue("anonymization took ${outcome.elapsedMillis} ms", outcome.elapsedMillis < 2000)
-        assertTrue("modified ${outcome.modifiedFraction}", outcome.modifiedFraction < 0.04f)
+        assertTrue(outcome.elapsedMillis < 2000, "anonymization took ${outcome.elapsedMillis} ms")
+        assertTrue(outcome.modifiedFraction < 0.04f, "modified ${outcome.modifiedFraction}")
     }
 }

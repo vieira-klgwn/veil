@@ -1,5 +1,7 @@
 package app.veil.privacy
 
+import kotlin.time.TimeSource
+
 data class ProtectionOutcome(
     val facesProtected: Int,
     val escalatedFaces: Int,
@@ -24,7 +26,7 @@ object PrivacyPipeline {
         effect: PrivacyEffect,
         strength: PrivacyStrength = PrivacyStrength.BALANCED,
     ): ProtectionOutcome {
-        val start = System.nanoTime()
+        val start = TimeSource.Monotonic.markNow()
         var protectedCount = 0
         var escalated = 0
         var modified = 0
@@ -52,7 +54,7 @@ object PrivacyPipeline {
             facesProtected = protectedCount,
             escalatedFaces = escalated,
             modifiedFraction = modified.toFloat() / (image.width * image.height),
-            elapsedMillis = (System.nanoTime() - start) / 1_000_000,
+            elapsedMillis = start.elapsedNow().inWholeMilliseconds,
             audits = audits,
         )
     }
@@ -60,7 +62,8 @@ object PrivacyPipeline {
     private fun cropped(image: PixelImage, roi: IntRect): PixelImage {
         val out = IntArray(roi.width * roi.height)
         for (y in 0 until roi.height) {
-            System.arraycopy(image.pixels, (roi.top + y) * image.width + roi.left, out, y * roi.width, roi.width)
+            val from = (roi.top + y) * image.width + roi.left
+            image.pixels.copyInto(out, y * roi.width, from, from + roi.width)
         }
         return PixelImage(roi.width, roi.height, out)
     }

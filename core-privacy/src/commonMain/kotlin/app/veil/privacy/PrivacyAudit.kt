@@ -76,7 +76,7 @@ object PrivacyAudit {
     }
 
     fun contains(face: FaceRegion, x: Float, y: Float): Boolean {
-        val rad = Math.toRadians(face.rotationDegrees.toDouble())
+        val rad = radians(face.rotationDegrees)
         val c = kotlin.math.cos(rad).toFloat()
         val s = kotlin.math.sin(rad).toFloat()
         val px = x - face.centerX

@@ -1,11 +1,12 @@
 package app.veil.privacy
 
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class FaceGeometryTest {
 
@@ -15,7 +16,7 @@ class FaceGeometryTest {
         assertEquals(450f, region.centerX, 0.01f)
         assertEquals(260f, region.centerY, 0.01f)
         val boxArea = 100f * 120f
-        assertTrue("ellipse must be smaller than the box", region.area < boxArea)
+        assertTrue(region.area < boxArea, "ellipse must be smaller than the box")
     }
 
     @Test
@@ -27,9 +28,9 @@ class FaceGeometryTest {
     @Test
     fun `contour fit is tighter than the bounding box for a rotated face`() {
         val rotation = 35f
-        val rad = Math.toRadians(rotation.toDouble())
+        val rad = rotation.toDouble() * PI / 180.0
         val points = (0 until 24).map { i ->
-            val t = 2 * Math.PI * i / 24
+            val t = 2 * PI * i / 24
             val lx = 40 * cos(t)
             val ly = 55 * sin(t)
             PointF2(
@@ -44,7 +45,7 @@ class FaceGeometryTest {
         }
         val fromBox = FaceGeometry.fromBoundingBox(box[0], box[1], box[2], box[3], rotation)
         val fitted = FaceGeometry.bestRegion(box[0], box[1], box[2], box[3], rotation, points)
-        assertTrue("contour ellipse should cover less area", fitted.area < fromBox.area)
+        assertTrue(fitted.area < fromBox.area, "contour ellipse should cover less area")
         assertTrue(points.all { PrivacyAudit.contains(fitted, it.x, it.y) })
     }
 

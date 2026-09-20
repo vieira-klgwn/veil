@@ -1,5 +1,6 @@
 package app.veil.privacy
 
+import kotlin.math.PI
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -31,11 +32,11 @@ data class FaceRegion(
     val radiusY: Float,
     val rotationDegrees: Float = 0f,
 ) {
-    val area: Float get() = (Math.PI * radiusX * radiusY).toFloat()
+    val area: Float get() = (PI * radiusX * radiusY).toFloat()
 
     /** Axis aligned bounds of the rotated ellipse, expanded by [pad] pixels. */
     fun bounds(pad: Float = 0f): IntRect {
-        val rad = Math.toRadians(rotationDegrees.toDouble())
+        val rad = radians(rotationDegrees)
         val c = kotlin.math.cos(rad)
         val s = kotlin.math.sin(rad)
         val halfW = kotlin.math.sqrt(radiusX * radiusX * c * c + radiusY * radiusY * s * s)
@@ -53,7 +54,7 @@ data class FaceRegion(
 
     /** True when the point falls inside the ellipse grown by [margin]. */
     fun contains(x: Float, y: Float, margin: Float = 1f): Boolean {
-        val rad = Math.toRadians(rotationDegrees.toDouble())
+        val rad = radians(rotationDegrees)
         val c = kotlin.math.cos(rad).toFloat()
         val s = kotlin.math.sin(rad).toFloat()
         val px = x - centerX
