@@ -2,6 +2,7 @@ package app.veil.camera.ui
 
 import android.content.res.Configuration
 import android.text.TextUtils
+import android.view.ContextThemeWrapper
 import android.view.View
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -33,7 +34,13 @@ fun AppLocale(language: AppLanguage, content: @Composable () -> Unit) {
             setLayoutDirection(locale)
         }
     }
-    val localizedContext = remember(configuration) { context.createConfigurationContext(configuration) }
+    // A ContextThemeWrapper keeps the activity as its base context, so the
+    // activity result registry, lifecycle and theme owners composables look up
+    // through LocalContext are still reachable; createConfigurationContext
+    // returns a detached context and breaks them.
+    val localizedContext = remember(context, configuration) {
+        ContextThemeWrapper(context, 0).apply { applyOverrideConfiguration(configuration) }
+    }
     val direction = remember(locale) {
         if (TextUtils.getLayoutDirectionFromLocale(locale) == View.LAYOUT_DIRECTION_RTL) {
             LayoutDirection.Rtl
