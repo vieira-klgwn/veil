@@ -1,11 +1,92 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Veil</string>
+    <string name="app_name" translatable="false">Veil</string>
     <string name="tagline">Beautiful photos. Protected people.</string>
+
     <string name="cd_shutter">Take a protected photo</string>
     <string name="cd_switch_camera">Switch camera</string>
     <string name="cd_settings">Privacy settings</string>
     <string name="cd_gallery">Open recent photos</string>
     <string name="cd_close">Close</string>
     <string name="cd_preview">Protected photo preview</string>
+    <string name="cd_viewfinder">Camera viewfinder</string>
+    <string name="cd_recording">Recording a protected video</string>
+    <string name="cd_stop_recording">Stop recording</string>
+    <string name="cd_record_video">Record a protected video</string>
+    <string name="cd_mode">%1$s mode</string>
+    <string name="cd_effect_option">%1$s effect</string>
+
+    <string name="permission_title">Veil needs the camera</string>
+    <string name="permission_body">Photos are analysed and protected on this device. Nothing is uploaded.</string>
+    <string name="permission_allow">Allow camera</string>
+
+    <string name="action_retake">Retake</string>
+    <string name="action_share">Share</string>
+    <string name="action_save">Save</string>
+    <string name="share_photo_chooser">Share protected photo</string>
+    <string name="share_video_chooser">Share protected video</string>
+
+    <string name="mode_photo">Photo</string>
+    <string name="mode_video">Video</string>
+
+    <string name="effect_blur">Blur</string>
+    <string name="effect_pixelate">Pixelate</string>
+    <string name="effect_mask">Mask</string>
+    <string name="strength_balanced">Balanced</string>
+    <string name="strength_maximum">Maximum</string>
+
+    <string name="settings_privacy">Privacy</string>
+    <string name="settings_privacy_body">Faces are found and protected on this device. Photos never leave your phone.</string>
+    <string name="settings_effect">Effect</string>
+    <string name="settings_strength">Protection level</string>
+    <string name="settings_shields">Live face shields</string>
+    <string name="settings_shields_body">Show which faces will be protected in the viewfinder.</string>
+    <string name="settings_language">Language</string>
+    <string name="language_system">System</string>
+    <!-- Language names stay in their own language in every locale. -->
+    <string name="language_english" translatable="false">English</string>
+    <string name="language_french" translatable="false">Français</string>
+    <string name="language_arabic" translatable="false">العربية</string>
+
+    <string name="review_effect">Privacy effect</string>
+    <string name="hint_tap_face">Tap a face to keep it visible</string>
+    <plurals name="hint_kept_visible">
+        <item quantity="one">%d face kept visible · tap again to protect</item>
+        <item quantity="other">%d faces kept visible · tap again to protect</item>
+    </plurals>
+
+    <string name="chip_privacy_on">Privacy on</string>
+    <plurals name="chip_faces_will_be_protected">
+        <item quantity="one">%d face will be protected</item>
+        <item quantity="other">%d faces will be protected</item>
+    </plurals>
+    <plurals name="chip_kept_visible">
+        <item quantity="one">%d kept visible</item>
+        <item quantity="other">%d kept visible</item>
+    </plurals>
+    <!-- Joins two status fragments, e.g. "2 faces will be protected · Blur". -->
+    <string name="status_join" translatable="false">%1$s · %2$s</string>
+    <string name="rec_timer">REC %1$02d:%2$02d</string>
+
+    <string name="banner_no_faces_found">No faces found</string>
+    <string name="banner_no_faces_protected">No faces protected</string>
+    <plurals name="banner_faces_protected">
+        <item quantity="one">%d face protected</item>
+        <item quantity="other">%d faces protected</item>
+    </plurals>
+    <string name="banner_dimensions">%1$d × %2$d · background untouched</string>
+
+    <string name="camera_unavailable">Camera unavailable: %1$s</string>
+    <string name="error_unknown">unknown error</string>
+    <string name="msg_capture_failed">Could not take the photo. Please try again.</string>
+    <string name="msg_video_unavailable">Video recording is not available on this device.</string>
+    <string name="msg_recording_too_short">The recording was too short to save.</string>
+    <string name="msg_video_saved">Saved to Movies/Veil</string>
+    <string name="msg_video_save_failed">Saving the video failed: %1$s</string>
+    <string name="msg_escalated_faces">Some faces needed a stronger effect and were fully masked.</string>
+    <string name="msg_out_of_memory">This photo is too large for the available memory.</string>
+    <string name="msg_protection_failed">Face protection failed, the photo was not saved.</string>
+    <string name="msg_photo_saved">Saved to Pictures/Veil</string>
+    <string name="msg_save_failed">Saving failed: %1$s</string>
+    <string name="msg_share_unavailable">Sharing is not available right now.</string>
 </resources>

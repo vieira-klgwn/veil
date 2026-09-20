@@ -35,11 +35,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.veil.camera.ui.AppLocale
 import app.veil.camera.ui.CameraScreen
 import app.veil.camera.ui.ReviewScreen
 import app.veil.camera.ui.SettingsSheet
@@ -62,6 +64,14 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun VeilApp(viewModel: CaptureViewModel) {
+    val settings by viewModel.settings.collectAsStateWithLifecycle()
+    AppLocale(settings.language) {
+        VeilContent(viewModel)
+    }
+}
+
+@Composable
+private fun VeilContent(viewModel: CaptureViewModel) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
@@ -85,13 +95,17 @@ private fun VeilApp(viewModel: CaptureViewModel) {
         if (!hasCamera) permissionLauncher.launch(Manifest.permission.CAMERA)
     }
 
-    LaunchedEffect(message) {
-        val text = message ?: return@LaunchedEffect
-        val savedVideo = text.startsWith("Saved to Movies")
-        val result = snackbarHost.showSnackbar(text, actionLabel = if (savedVideo) "Share" else null)
-        if (savedVideo && result == SnackbarResult.ActionPerformed) {
+    LaunchedEffect(message, context) {
+        val pending = message ?: return@LaunchedEffect
+        val result = snackbarHost.showSnackbar(
+            message = pending.resolve(context),
+            actionLabel = if (pending.offerVideoShare) context.getString(R.string.action_share) else null,
+        )
+        if (pending.offerVideoShare && result == SnackbarResult.ActionPerformed) {
             viewModel.shareVideo { intent ->
-                context.startActivity(Intent.createChooser(intent, "Share protected video"))
+                context.startActivity(
+                    Intent.createChooser(intent, context.getString(R.string.share_video_chooser)),
+                )
             }
         }
         viewModel.consumeMessage()
@@ -114,7 +128,16 @@ private fun VeilApp(viewModel: CaptureViewModel) {
                         effect = settings.effect,
                         onEffectChange = viewModel::changeEffect,
                         onSave = viewModel::save,
-                        onShare = { viewModel.share { intent -> context.startActivity(Intent.createChooser(intent, "Share protected photo")) } },
+                        onShare = {
+                            viewModel.share { intent ->
+                                context.startActivity(
+                                    Intent.createChooser(
+                                        intent,
+                                        context.getString(R.string.share_photo_chooser),
+                                    ),
+                                )
+                            }
+                        },
                         onRetake = viewModel::retake,
                         onToggleFace = viewModel::togglePhotoFace,
                     )
@@ -152,6 +175,7 @@ private fun VeilApp(viewModel: CaptureViewModel) {
                     onEffect = viewModel::changeEffect,
                     onStrength = viewModel::changeStrength,
                     onLivePreview = viewModel::setLivePreview,
+                    onLanguage = viewModel::setLanguage,
                     onDismiss = { showSettings = false },
                 )
             }
@@ -167,18 +191,18 @@ private fun PermissionPrompt(onRequest: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            "Veil needs the camera",
+            stringResource(R.string.permission_title),
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onBackground,
         )
         Spacer(Modifier.height(10.dp))
         Text(
-            "Photos are analysed and protected on this device. Nothing is uploaded.",
+            stringResource(R.string.permission_body),
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(24.dp))
-        Button(onClick = onRequest) { Text("Allow camera") }
+        Button(onClick = onRequest) { Text(stringResource(R.string.permission_allow)) }
     }
 }

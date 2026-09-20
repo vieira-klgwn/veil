@@ -59,6 +59,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -95,6 +96,7 @@ fun CameraScreen(
     onOpenGallery: () -> Unit,
 ) {
     val context = LocalContext.current
+    val viewfinderLabel = stringResource(R.string.cd_viewfinder)
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     var lensFacing by remember { mutableStateOf(CameraSelector.LENS_FACING_BACK) }
@@ -191,14 +193,17 @@ fun CameraScreen(
             )
             cameraError = null
         } catch (t: Throwable) {
-            cameraError = "Camera unavailable: ${t.message ?: "unknown error"}"
+            cameraError = context.getString(
+                R.string.camera_unavailable,
+                t.message ?: context.getString(R.string.error_unknown),
+            )
         }
     }
 
     Box(Modifier.fillMaxSize().background(Color.Black)) {
         androidx.compose.ui.viewinterop.AndroidView(
             factory = { previewView },
-            modifier = Modifier.fillMaxSize().semantics { contentDescription = "Camera viewfinder" },
+            modifier = Modifier.fillMaxSize().semantics { contentDescription = viewfinderLabel },
         )
         if (livePreviewEnabled) {
             FaceShieldOverlay(
@@ -274,9 +279,13 @@ fun CameraScreen(
             if (livePreviewEnabled && live.faces.isNotEmpty()) {
                 Text(
                     text = if (keepVisible.isEmpty()) {
-                        "Tap a face to keep it visible"
+                        stringResource(R.string.hint_tap_face)
                     } else {
-                        "${keepVisible.size} face(s) kept visible · tap again to protect"
+                        pluralStringResource(
+                            R.plurals.hint_kept_visible,
+                            keepVisible.size,
+                            keepVisible.size,
+                        )
                     },
                     color = Color.White,
                     style = MaterialTheme.typography.labelMedium,
@@ -384,12 +393,20 @@ private fun PrivacyChip(
     effect: PrivacyEffect,
     modifier: Modifier = Modifier,
 ) {
-    val label = when {
-        faceCount == 0 && keptCount == 0 -> "Privacy on"
-        faceCount == 0 -> "$keptCount kept visible"
-        faceCount == 1 -> "1 face will be protected"
-        else -> "$faceCount faces will be protected"
-    } + if (faceCount > 0 && keptCount > 0) " · $keptCount kept visible" else ""
+    val protection = when {
+        faceCount == 0 && keptCount == 0 -> stringResource(R.string.chip_privacy_on)
+        faceCount == 0 -> pluralStringResource(R.plurals.chip_kept_visible, keptCount, keptCount)
+        else -> pluralStringResource(R.plurals.chip_faces_will_be_protected, faceCount, faceCount)
+    }
+    val label = if (faceCount > 0 && keptCount > 0) {
+        stringResource(
+            R.string.status_join,
+            protection,
+            pluralStringResource(R.plurals.chip_kept_visible, keptCount, keptCount),
+        )
+    } else {
+        protection
+    }
     Row(
         modifier = modifier
             .background(Color(0x66000000), CircleShape)
@@ -405,7 +422,7 @@ private fun PrivacyChip(
         )
         Spacer(Modifier.size(8.dp))
         Text(
-            text = "$label · ${effect.label()}",
+            text = stringResource(R.string.status_join, label, effect.label()),
             color = Color.White,
             style = MaterialTheme.typography.labelLarge,
         )
@@ -414,13 +431,14 @@ private fun PrivacyChip(
 
 @Composable
 private fun ShutterButton(busy: Boolean, onClick: () -> Unit) {
+    val shutterLabel = stringResource(R.string.cd_shutter)
     Box(
         modifier = Modifier
             .size(78.dp)
             .background(Color.White.copy(alpha = 0.18f), CircleShape)
             .border(3.dp, Color.White, CircleShape)
             .clickable(enabled = !busy, onClick = onClick)
-            .semantics { contentDescription = "Take a protected photo" },
+            .semantics { contentDescription = shutterLabel },
         contentAlignment = Alignment.Center,
     ) {
         AnimatedVisibility(visible = !busy, enter = fadeIn(), exit = fadeOut()) {
@@ -443,6 +461,7 @@ private fun ShutterButton(busy: Boolean, onClick: () -> Unit) {
 /** Elapsed recording time, driven by a one second tick. */
 @Composable
 private fun RecordingChip(startedAtMillis: Long) {
+    val recordingLabel = stringResource(R.string.cd_recording)
     var now by remember { mutableStateOf(System.currentTimeMillis()) }
     LaunchedEffect(startedAtMillis) {
         while (true) {
@@ -455,13 +474,13 @@ private fun RecordingChip(startedAtMillis: Long) {
         modifier = Modifier
             .background(Color(0xCC8E1111), CircleShape)
             .padding(horizontal = 12.dp, vertical = 6.dp)
-            .semantics { contentDescription = "Recording a protected video" },
+            .semantics { contentDescription = recordingLabel },
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(Modifier.size(9.dp).background(Color.White, CircleShape))
         Spacer(Modifier.size(8.dp))
         Text(
-            text = "REC %02d:%02d".format(seconds / 60, seconds % 60),
+            text = stringResource(R.string.rec_timer, seconds / 60, seconds % 60),
             color = Color.White,
             style = MaterialTheme.typography.labelLarge,
         )
@@ -476,13 +495,18 @@ private fun ModeSwitch(videoMode: Boolean, enabled: Boolean, onChange: (Boolean)
             .padding(4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        ModeChip("Photo", selected = !videoMode, enabled = enabled) { onChange(false) }
-        ModeChip("Video", selected = videoMode, enabled = enabled) { onChange(true) }
+        ModeChip(stringResource(R.string.mode_photo), selected = !videoMode, enabled = enabled) {
+            onChange(false)
+        }
+        ModeChip(stringResource(R.string.mode_video), selected = videoMode, enabled = enabled) {
+            onChange(true)
+        }
     }
 }
 
 @Composable
 private fun ModeChip(label: String, selected: Boolean, enabled: Boolean, onClick: () -> Unit) {
+    val modeLabel = stringResource(R.string.cd_mode, label)
     val background = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent
     val content = when {
         selected -> MaterialTheme.colorScheme.onPrimary
@@ -497,25 +521,22 @@ private fun ModeChip(label: String, selected: Boolean, enabled: Boolean, onClick
             .background(background, CircleShape)
             .clickable(enabled = enabled && !selected, onClick = onClick)
             .padding(horizontal = 18.dp, vertical = 8.dp)
-            .semantics { contentDescription = "$label mode" },
+            .semantics { contentDescription = modeLabel },
     )
 }
 
 @Composable
 private fun RecordButton(recording: Boolean, saving: Boolean, onClick: () -> Unit) {
+    val buttonLabel = stringResource(
+        if (recording) R.string.cd_stop_recording else R.string.cd_record_video,
+    )
     Box(
         modifier = Modifier
             .size(78.dp)
             .background(Color.White.copy(alpha = 0.18f), CircleShape)
             .border(3.dp, Color.White, CircleShape)
             .clickable(enabled = !saving, onClick = onClick)
-            .semantics {
-                contentDescription = if (recording) {
-                    "Stop recording"
-                } else {
-                    "Record a protected video"
-                }
-            },
+            .semantics { contentDescription = buttonLabel },
         contentAlignment = Alignment.Center,
     ) {
         when {
@@ -532,11 +553,14 @@ private fun RecordButton(recording: Boolean, saving: Boolean, onClick: () -> Uni
     }
 }
 
-fun PrivacyEffect.label(): String = when (this) {
-    PrivacyEffect.BLUR -> "Blur"
-    PrivacyEffect.PIXELATE -> "Pixelate"
-    PrivacyEffect.MASK -> "Mask"
+fun PrivacyEffect.labelRes(): Int = when (this) {
+    PrivacyEffect.BLUR -> R.string.effect_blur
+    PrivacyEffect.PIXELATE -> R.string.effect_pixelate
+    PrivacyEffect.MASK -> R.string.effect_mask
 }
+
+@Composable
+fun PrivacyEffect.label(): String = stringResource(labelRes())
 
 private suspend fun Context.awaitCameraProvider(): ProcessCameraProvider {
     val future = ProcessCameraProvider.getInstance(this)
