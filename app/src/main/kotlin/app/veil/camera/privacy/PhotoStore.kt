@@ -86,6 +86,54 @@ object PhotoStore {
         }
     }
 
+    /** Moves a finished protected recording into Movies/Veil. */
+    suspend fun saveVideoToGallery(context: Context, source: File): Uri = withContext(Dispatchers.IO) {
+        val name = "VEIL_${timestamp()}.mp4"
+        val values = ContentValues().apply {
+            put(MediaStore.Video.Media.DISPLAY_NAME, name)
+            put(MediaStore.Video.Media.MIME_TYPE, VIDEO_MIME)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                put(MediaStore.Video.Media.RELATIVE_PATH, "${Environment.DIRECTORY_MOVIES}/$ALBUM")
+                put(MediaStore.Video.Media.IS_PENDING, 1)
+            }
+        }
+        val resolver = context.contentResolver
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val uri = resolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, values)
+                ?: error("gallery rejected the new video")
+            try {
+                resolver.openOutputStream(uri)?.use { out -> source.inputStream().use { it.copyTo(out) } }
+                    ?: error("gallery returned no output stream")
+            } catch (t: Throwable) {
+                resolver.delete(uri, null, null)
+                throw t
+            }
+            values.clear()
+            values.put(MediaStore.Video.Media.IS_PENDING, 0)
+            resolver.update(uri, values, null, null)
+            source.delete()
+            uri
+        } else {
+            @Suppress("DEPRECATION")
+            val dir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES), ALBUM)
+            if (!dir.exists() && !dir.mkdirs()) error("cannot create album folder")
+            val file = File(dir, name)
+            source.inputStream().use { input -> FileOutputStream(file).use { input.copyTo(it) } }
+            source.delete()
+            values.put(MediaStore.Video.Media.DATA, file.absolutePath)
+            resolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, values) ?: Uri.fromFile(file)
+        }
+    }
+
+    /** Shares a saved recording straight from its gallery entry. */
+    fun shareVideoIntent(uri: Uri): Intent = Intent(Intent.ACTION_SEND).apply {
+        type = VIDEO_MIME
+        putExtra(Intent.EXTRA_STREAM, uri)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+
+    private const val VIDEO_MIME = "video/mp4"
+
     private fun timestamp(): String =
         SimpleDateFormat("yyyyMMdd_HHmmss_SSS", Locale.US).format(Date())
 }
