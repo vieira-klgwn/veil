@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Veil</string>
+    <string name="tagline">Beautiful photos. Protected people.</string>
+    <string name="cd_shutter">Take a protected photo</string>
+    <string name="cd_switch_camera">Switch camera</string>
+    <string name="cd_settings">Privacy settings</string>
+    <string name="cd_gallery">Open recent photos</string>
+    <string name="cd_close">Close</string>
+    <string name="cd_preview">Protected photo preview</string>
+</resources>
